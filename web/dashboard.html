@@ -230,8 +230,9 @@ function render() {
 
   let main = '';
   if (adv.chart_path) {
+    const chartName = adv.chart_path.replace(/\\/g, '/').split('/').pop();
     main += `<div class="chart-container">
-      <img src="/snapshots/${adv.chart_path.split('/').pop()}" class="chart-img" alt="Chart ${current.symbol}">
+      <img src="/snapshots/${chartName}" class="chart-img" alt="Chart ${current.symbol}">
     </div>`;
   }
 

@@ -405,6 +405,20 @@ def build_advice(a: dict, bt_map: dict, jr_map: dict, news: list, use_mem: bool,
         f"- {verdict}",
     ]
     lines.append(f"- Kill Zone: {kz_name.upper() if in_kz else ('n/a (крипта 24/7)' if is_crypto else 'ВНЕ KILL ZONE')}")
+    if not is_crypto or True:
+        try:
+            from m5_sniper import check as m5_check
+            m5 = m5_check(YAHOO_SYMBOLS[sym], sym, a.get("params") or {}, cfg={"dedup_h": 0},
+                          d1_trend=a["trend_d1"], h4_trend=a["trend_h4"])
+            if m5:
+                m5_tag = f"[KZ: {m5['kz_name']}]" if m5["kz_name"] else ("[24/7]" if m5["is_crypto"] else "[вне KZ]")
+                m5_h4 = "[H4 OK]" if m5["h4_ok"] else "[H4 ПРОТИВ]"
+                lines.append(f"- **M5 СНАЙПЕР {m5_tag} {m5_h4}: {m5['dir'].upper()} @ {m5['entry']} "
+                             f"SL {m5['sl']} TP {m5['tp']} RR {m5['rr']}**")
+            else:
+                lines.append("- M5 снайпер: НЕТ активного входа (жду свежий BOS в направлении D1-тренда)")
+        except Exception:
+            pass
     if ar.get("high") and ar.get("low"):
         lines.append(f"- Asian Range: {ar['low']:.3f}–{ar['high']:.3f} ({ar['range_pct']}%) | байас: {ar['bias'].upper()}")
     if calendar_veto:

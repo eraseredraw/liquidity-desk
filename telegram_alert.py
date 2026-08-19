@@ -54,3 +54,15 @@ def alert_signal_change(symbol: str, old_signal: str, new_signal: str, price: fl
         f"{str(old_signal).upper()} → <b>{str(new_signal).upper()}</b>\n"
         f"Цена: {price:.4f}"
     )
+
+
+def alert_m5_entry(symbol: str, direction: str, entry: float, sl: float,
+                   tp: float, rr: float, kz_tag: str) -> bool:
+    emoji = "🟢" if direction == "buy" else "🔴"
+    return send(
+        f"{emoji} <b>SNIPER ENTRY {symbol}</b> {kz_tag}\n"
+        f"Вход: <b>{direction.upper()} @ {entry:.4f}</b>\n"
+        f"SL: {sl:.4f} | TP: {tp:.4f}\n"
+        f"RR: <b>{rr}</b>\n"
+        f"Входить только при живом пробое и свежей свече!"
+    )

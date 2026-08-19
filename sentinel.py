@@ -23,7 +23,8 @@ except ImportError:
     winsound = None
 
 sys.path.insert(0, str(Path(__file__).parent))
-from strategy import analyze_all, YAHOO_SYMBOLS, in_kill_zone
+from strategy import analyze_all, YAHOO_SYMBOLS, in_kill_zone, SYMBOL_PARAMS
+from m5_sniper import check as m5_check, DEFAULTS as M5_DEFAULTS
 
 HERE = Path(__file__).parent
 CONFIG = HERE / "sentinel_config.json"
@@ -69,11 +70,13 @@ def beep(kind: str) -> None:
 def _telegram(kind: str, **kw) -> None:
     """Отправить алерт в Telegram, если настроен (опционально, никогда не падает)."""
     try:
-        from telegram_alert import alert_zone, alert_signal_change
+        from telegram_alert import alert_zone, alert_signal_change, alert_m5_entry
         if kind == "zone":
             alert_zone(kw["sym"], kw["price"], kw["zone_name"], kw["signal"], kw.get("score") or 0)
         elif kind == "signal":
             alert_signal_change(kw["sym"], kw["old_signal"], kw["new_signal"], kw["price"])
+        elif kind == "m5":
+            alert_m5_entry(kw["sym"], kw["direction"], kw["entry"], kw["sl"], kw["tp"], kw["rr"], kw["kz_tag"])
     except Exception:
         pass
 
@@ -191,6 +194,36 @@ def check(cfg: dict) -> dict:
 
         if prev.get("signal") != a["signal"]:
             log(f"[INFO] {sym}: сигнал {prev.get('signal')} -> {a['signal']}")
+
+        # ── M5 снайпер: 1-2 уверенных входа в день ──
+        params = SYMBOL_PARAMS.get(sym)
+        m5_cfg = {**M5_DEFAULTS, **cfg.get("m5", {})}
+        if cfg.get("m5", {}).get("enabled", True) and params:
+            m5 = m5_check(YAHOO_SYMBOLS[sym], sym, params, cfg=m5_cfg,
+                          d1_trend=a["trend_d1"], h4_trend=a["trend_h4"])
+            if m5:
+                key = f"m5_{m5['dir']}"
+                last_m5 = prev.get(key)
+                now = dt.datetime.now(dt.timezone.utc)
+                dedup = dt.timedelta(hours=m5_cfg.get("dedup_h", 12))
+                if not last_m5 or dt.datetime.fromisoformat(last_m5) < now - dedup:
+                    kz_tag = (f"[KZ: {m5['kz_name']}]" if m5["kz_name"]
+                              else ("[24/7 крипта]" if m5["is_crypto"] else "[вне KZ]"))
+                    h4_tag = "[H4 OK]" if m5["h4_ok"] else "[H4 ПРОТИВ]"
+                    msg = (f"SNIPER ENTRY {sym} {kz_tag} {h4_tag}: {m5['dir'].upper()} @ {m5['entry']} "
+                           f"SL {m5['sl']} TP {m5['tp']} RR {m5['rr']}. D1-тренд {m5['d1_trend']}, "
+                           f"свинг-уровень {m5['swing']}")
+                    beep("signal")
+                    _telegram("m5", sym=sym, direction=m5["dir"], entry=m5["entry"], sl=m5["sl"],
+                              tp=m5["tp"], rr=m5["rr"], kz_tag=kz_tag)
+                    log(f"[ALERT] {msg}")
+                    result["alerts"].append(msg)
+                    s[key] = now.isoformat()
+                    s["alert_type"] = "m5"
+                    (alerts_dir / f"alert_{sym}_m5_{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d_%H%M%S')}.txt").write_text(msg, encoding="utf-8")
+                else:
+                    log(f"[INFO] {sym}: m5 {m5['dir']} confirmed, dedup (последний {last_m5})")
+
         state[sym] = s
     save_state(state)
     if errors:

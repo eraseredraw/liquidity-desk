@@ -1,7 +1,14 @@
 {
-  "interval_min": 10,
+  "interval_min": 5,
   "zone_pct": 0.5,
   "zone_pct_atr_mult": 0.5,
   "symbols": ["XAUUSD", "GBPUSD", "EURUSD", "GBPJPY", "DAX"],
-  "alerts_dir": "alerts"
+  "alerts_dir": "alerts",
+  "m5": {
+    "enabled": true,
+    "min_rr": 1.5,
+    "max_rr": 6.0,
+    "min_tp_dist": 0.0005,
+    "dedup_h": 12
+  }
 }

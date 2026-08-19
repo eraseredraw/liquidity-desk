@@ -161,7 +161,8 @@ def check(cfg: dict) -> dict:
             nearest = zones[0]
             side_text = "зона лонга (отбой/пробой вниз — решение по структуре)" if nearest["side"] == "buy" else "зона шорта или пробоя вверх — решение по структуре"
             kz_in, kz_name = in_kill_zone()
-            kz_tag = f"[KZ: {kz_name}]" if kz_in else "[вне KZ]"
+            is_crypto = bool((a.get("params") or {}).get("crypto"))
+            kz_tag = f"[KZ: {kz_name}]" if kz_in else ("[24/7 крипта]" if is_crypto else "[вне KZ]")
             if not prev_alert or (dt.datetime.fromisoformat(prev_alert) < dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=cfg["interval_min"] * 2)):
                 msg = (f"ЗОНА {sym} {kz_tag}: цена {last} вошла в зону {nearest['key']} = {nearest['level']} "
                        f"(дист {nearest['dist_pct']}%). Оценка: {side_text}. "
@@ -176,7 +177,8 @@ def check(cfg: dict) -> dict:
                 (alerts_dir / f"alert_{sym}_{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d_%H%M%S')}.txt").write_text(msg, encoding="utf-8")
         elif a["signal"] != "neutral" and prev_signal != a["signal"]:
             kz_in, kz_name = in_kill_zone()
-            kz_tag = f"[KZ: {kz_name}]" if kz_in else "[вне KZ]"
+            is_crypto = bool((a.get("params") or {}).get("crypto"))
+            kz_tag = f"[KZ: {kz_name}]" if kz_in else ("[24/7 крипта]" if is_crypto else "[вне KZ]")
             msg = (f"СИГНАЛ {sym} {kz_tag}: {a['signal'].upper()} (было {prev_signal}). Цена {last}, "
                    f"пул {a['liquidity_pool_below']}/{a['liquidity_pool_above']}, тренд {a['trend_h1']}")
             beep("signal")

@@ -310,10 +310,13 @@ def build_advice(a: dict, bt_map: dict, jr_map: dict, news: list, use_mem: bool,
     veto = risk_guard(a, journal or [], corr_pairs or {}, cons, rg_cfg)
 
     # ── Kill Zone: вне окон — штраф, в окне — бонус (план, улучшение 1) ──
+    is_crypto = bool((a.get("params") or {}).get("crypto"))
     in_kz, kz_name = in_kill_zone()
-    if not in_kz:
+    if not in_kz and not is_crypto:
         escore = max(0, escore - 20)
         ereasons.insert(0, f"ВНЕ KILL ZONE (час UTC: {datetime.now(timezone.utc).hour}ч) — вероятность фейка выше")
+    elif is_crypto:
+        ereasons.insert(0, "Крипта 24/7 — kill zone не применима (сессий нет)")
     else:
         ereasons.insert(0, f"KILL ZONE активна: {kz_name} — оптимальное время")
 
@@ -333,6 +336,8 @@ def build_advice(a: dict, bt_map: dict, jr_map: dict, news: list, use_mem: bool,
 
     # ── Asian Range Bias: совпадение/противоречие (улучшение 4) ──
     ar = asian_range(YAHOO_SYMBOLS[sym])
+    if is_crypto:
+        ar = {"bias": "neutral"}
     if ar.get("bias") != "neutral":
         if ar["bias"] == signal:
             escore = min(100, escore + 10)
@@ -399,7 +404,7 @@ def build_advice(a: dict, bt_map: dict, jr_map: dict, news: list, use_mem: bool,
         f"- Уверенность: {conf} ({score}/100)",
         f"- {verdict}",
     ]
-    lines.append(f"- Kill Zone: {kz_name.upper() if in_kz else 'ВНЕ KILL ZONE'}")
+    lines.append(f"- Kill Zone: {kz_name.upper() if in_kz else ('n/a (крипта 24/7)' if is_crypto else 'ВНЕ KILL ZONE')}")
     if ar.get("high") and ar.get("low"):
         lines.append(f"- Asian Range: {ar['low']:.3f}–{ar['high']:.3f} ({ar['range_pct']}%) | байас: {ar['bias'].upper()}")
     if calendar_veto:

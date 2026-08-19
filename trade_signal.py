@@ -168,6 +168,7 @@ ASSET_KEYWORDS = {
     "EURUSD": ["euro", "eur", "ecb", "germany", "france"],
     "GBPJPY": ["pound", "sterling", "gbp", "yen", "jpy", "japan", "boj", "uk"],
     "DAX": ["dax", "xetra", "german", "germany", "dax40", "frankfurt", "euro stoxx", "ifo", "zew"],
+    "BTCUSD": ["bitcoin", "btc", "crypto", "cryptocurrency", "satoshi", "blockchain", "etf"],
 }
 MACRO_KEYWORDS = ["fed", "fomc", "nfp", "cpi", "ppi", "rate", "dollar", "inflation", "yield", "tariff", "powell"]
 

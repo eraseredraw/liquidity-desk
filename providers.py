@@ -18,6 +18,7 @@ SYMBOL_MAP = {
     "EURUSD=X": ("EUR/USD", "OANDA:EUR_USD"),
     "GBPJPY=X": ("GBP/JPY", "OANDA:GBP_JPY"),
     "^GDAXI": ("GDAXI", "OANDA:GER30"),
+    "BTC-USD": ("BTC/USD", "OANDA:BTC_USD"),
 }
 
 TD_INTERVAL = {"15m": "15min", "1h": "1h", "4h": "4h", "1d": "1day", "1wk": "1week", "5m": "5min"}

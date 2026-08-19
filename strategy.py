@@ -16,10 +16,12 @@ YAHOO_SYMBOLS = {
     "EURUSD": "EURUSD=X",
     "GBPJPY": "GBPJPY=X",
     "DAX": "^GDAXI",
+    "BTCUSD": "BTC-USD",
 }
 
 SYMBOL_PARAMS = {
     "GBPJPY": {"zone": 1.005, "sl_buf": 0.995, "tp_buf": 1.008, "hold": 20, "k": 1, "filter": "w1"},
+    "BTCUSD": {"zone": 1.01, "sl_buf": 0.995, "tp_buf": 1.005, "hold": 5, "k": 2, "filter": "d1", "crypto": True},
     "XAUUSD": None,
     "GBPUSD": None,
     "EURUSD": None,

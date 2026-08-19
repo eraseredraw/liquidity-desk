@@ -16,10 +16,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from strategy import SYMBOL_PARAMS, YAHOO_SYMBOLS, analyze_all, correlation_matrix
+from strategy import asian_range, in_kill_zone, m5_break_of_structure
 from trade_signal import fetch_news, news_for_symbol, news_sentiment
 from signals_watch import consensus as signals_consensus
 from signals_watch import load_cache as signals_load_cache
 from signals_watch import load_positions as signals_load_positions
+
+try:
+    from econ_calendar import check_news_veto
+except Exception:
+    check_news_veto = None
 
 HERE = Path(__file__).parent
 PALACE = Path(os.environ.get("MEMPALACE_PALACE", r"C:\Users\h04x\.mempalace\palace"))
@@ -303,6 +309,54 @@ def build_advice(a: dict, bt_map: dict, jr_map: dict, news: list, use_mem: bool,
     rg_cfg = load_risk_guard()
     veto = risk_guard(a, journal or [], corr_pairs or {}, cons, rg_cfg)
 
+    # ── Kill Zone: вне окон — штраф, в окне — бонус (план, улучшение 1) ──
+    in_kz, kz_name = in_kill_zone()
+    if not in_kz:
+        escore = max(0, escore - 20)
+        ereasons.insert(0, f"ВНЕ KILL ZONE (час UTC: {datetime.now(timezone.utc).hour}ч) — вероятность фейка выше")
+    else:
+        ereasons.insert(0, f"KILL ZONE активна: {kz_name} — оптимальное время")
+
+    # ── Экономический календарь: вето за 30 мин до high-impact (улучшение 3) ──
+    calendar_veto = None
+    if check_news_veto is not None:
+        try:
+            nv = check_news_veto(sym)
+            if nv["veto"]:
+                calendar_veto = nv["reason"]
+        except Exception:
+            pass
+    if calendar_veto and not veto:
+        veto = f"НОВОСТНОЕ ВЕТО: {calendar_veto}"
+
+    signal = a["signal"]
+
+    # ── Asian Range Bias: совпадение/противоречие (улучшение 4) ──
+    ar = asian_range(YAHOO_SYMBOLS[sym])
+    if ar.get("bias") != "neutral":
+        if ar["bias"] == signal:
+            escore = min(100, escore + 10)
+            ereasons.append(f"Asian Range байас совпадает: пробит {'HIGH' if ar['bias'] == 'sell' else 'LOW'} "
+                            f"({ar['broken_level']:.3f}) → байас {ar['bias'].upper()}")
+        elif signal not in ("neutral", "disabled"):
+            escore = max(0, escore - 10)
+            ereasons.append(f"Asian Range байас ПРОТИВ сигнала: пробит уровень {ar['broken_level']:.3f} "
+                            f"указывает на {ar['bias'].upper()}, осторожно")
+
+    # ── M5 Break of Structure: подтверждение входа (улучшение 2) ──
+    bos = None
+    if signal in ("buy", "sell") and not veto:
+        zone_price = a.get("liquidity_pool_below") if signal == "buy" else a.get("liquidity_pool_above")
+        bos = m5_break_of_structure(YAHOO_SYMBOLS[sym], signal, zone_price=zone_price)
+        if bos.get("confirmed"):
+            escore = min(100, escore + 15)
+            ereasons.insert(0, f"M5 BOS подтверждён ({bos['detail']}): вход {bos['entry_price']}, "
+                               f"SL {bos['sl_price']}, R/R ~{bos['r_ratio']}")
+            a["m5_entry"] = bos["entry_price"]
+            a["m5_sl"] = bos["sl_price"]
+        else:
+            ereasons.append(f"M5 BOS: нет подтверждения ({bos.get('detail', 'ждать пробоя структуры')})")
+
     signal = a["signal"]
     if signal == "disabled":
         escore, elabel, ereasons = 0, "ИНСТРУМЕНТ ОТКЛЮЧЁН", ["решетка параметров показала переобучение — EURUSD не торгуем"]
@@ -310,9 +364,13 @@ def build_advice(a: dict, bt_map: dict, jr_map: dict, news: list, use_mem: bool,
     elif signal == "buy":
         verdict = f"ДЕЙСТВИЕ: лонг от {a['liquidity_pool_below']} (зона buy-стопов), "
         verdict += f"SL {a['liquidity_pool_below']*0.995:.3f}, TP {a['nearest_resistance']}"
+        if bos and bos.get("confirmed"):
+            verdict += f" | M5 BOS подтверждён: вход {a['m5_entry']}, SL {a['m5_sl']}"
     elif signal == "sell":
         verdict = f"ДЕЙСТВИЕ: шорт от {a['liquidity_pool_above']} (зона sell-стопов), "
         verdict += f"SL {a['liquidity_pool_above']*1.005:.3f}, TP {a['nearest_support']}"
+        if bos and bos.get("confirmed"):
+            verdict += f" | M5 BOS подтверждён: вход {a['m5_entry']}, SL {a['m5_sl']}"
     elif signal == "wait":
         verdict = f"ОЖИДАНИЕ: цена у {a['liquidity_pool_below'] or a['liquidity_pool_above']} "
         verdict += "без подтверждения тренда H4 — не входить, следить за зоной"
@@ -341,6 +399,11 @@ def build_advice(a: dict, bt_map: dict, jr_map: dict, news: list, use_mem: bool,
         f"- Уверенность: {conf} ({score}/100)",
         f"- {verdict}",
     ]
+    lines.append(f"- Kill Zone: {kz_name.upper() if in_kz else 'ВНЕ KILL ZONE'}")
+    if ar.get("high") and ar.get("low"):
+        lines.append(f"- Asian Range: {ar['low']:.3f}–{ar['high']:.3f} ({ar['range_pct']}%) | байас: {ar['bias'].upper()}")
+    if calendar_veto:
+        lines.append(f"- Календарь: ВЕТО — {calendar_veto}")
     if zones:
         lines.append("- Ближайшие зоны:")
         for key, side, dist in zones[:3]:

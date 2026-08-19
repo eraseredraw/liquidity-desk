@@ -126,6 +126,95 @@ def cmd_close(args) -> None:
     return 0
 
 
+def cmd_check(args) -> int:
+    """Проверить открытые позиции: напомнить СЕЙФ-правило (50% на +15-20 пунктов)."""
+    entries = load_journal()
+    open_pos = [e for e in entries if e.get("status") == "open"]
+    if not open_pos:
+        print("Нет открытых позиций.")
+        return 0
+    try:
+        from strategy import analyze_symbol, YAHOO_SYMBOLS
+    except Exception:
+        print("Не удалось загрузить strategy — нет текущих цен.")
+        for p in open_pos:
+            print(f"{p['symbol']} {p['side'].upper()} @ {p['entry']} (открыта, текущая цена недоступна)")
+        return 0
+    now = datetime.now(timezone.utc)
+    reminders = []
+    for pos in open_pos:
+        symbol, entry_price, side = pos["symbol"], pos["entry"], pos["side"]
+        partial_taken = pos.get("partial_taken", False)
+        try:
+            a = analyze_symbol(symbol, YAHOO_SYMBOLS.get(symbol, symbol))
+            current = a["last_price"]
+        except Exception:
+            current = None
+        if current is None:
+            continue
+        pnl_pct = (current - entry_price) / entry_price * 100 if side == "buy" \
+            else (entry_price - current) / entry_price * 100
+        status_msg = f"{symbol} {side.upper()} @ {entry_price:.4f} → {current:.4f} | P&L: {pnl_pct:+.2f}%"
+        if pnl_pct >= 0.1 and not partial_taken:
+            reminders.append(f"⚠️  СЕЙФ! {status_msg} — закрыть 50%, SL в безубыток для остатка!")
+        elif pnl_pct >= 0.0:
+            reminders.append(f"✅  {status_msg}")
+        else:
+            reminders.append(f"🔻  {status_msg} | SL скоро: следить")
+    for r in reminders:
+        print(r)
+    return 0
+
+
+def cmd_partial(args) -> int:
+    """Отметить, что по позиции символa взято 50% (СЕЙФ-правило)."""
+    entries = load_journal()
+    hit = False
+    for e in entries:
+        if e["symbol"].upper() == args.symbol.upper() and e.get("status") == "open":
+            e["partial_taken"] = True
+            e["partial_at"] = datetime.now(timezone.utc).isoformat()
+            hit = True
+    if not hit:
+        print(f"Нет открытых позиций по {args.symbol}")
+        return 1
+    save_journal(entries)
+    print(f"{args.symbol}: частичное закрытие отмечено (partial_taken=True)")
+    return 0
+
+
+def cmd_trail(args) -> int:
+    """Трейлинг-стоп по ближайшему H4-уровню за ценой."""
+    entries = load_journal()
+    open_pos = [e for e in entries if e["symbol"].upper() == args.symbol.upper() and e.get("status") == "open"]
+    if not open_pos:
+        print(f"Нет открытых позиций по {args.symbol}")
+        return 1
+    try:
+        from strategy import analyze_symbol, YAHOO_SYMBOLS
+        a = analyze_symbol(args.symbol, YAHOO_SYMBOLS.get(args.symbol, args.symbol))
+    except Exception as exc:
+        print(f"Ошибка анализа: {exc}")
+        return 1
+    pos = open_pos[-1]
+    side, current = pos["side"], a["last_price"]
+    if side == "buy":
+        support = a.get("h4_support") or a.get("nearest_support")
+        if support and support < current:
+            print(f"{args.symbol} BUY трейлинг SL → {support * 0.999:.4f} (H4 поддержка {support:.4f})")
+            print(f"Текущая цена: {current:.4f} | P&L: {(current - pos['entry']) / pos['entry'] * 100:+.2f}%")
+        else:
+            print("Нет H4 поддержки ниже цены — держать текущий SL")
+    elif side == "sell":
+        resistance = a.get("h4_resistance") or a.get("nearest_resistance")
+        if resistance and resistance > current:
+            print(f"{args.symbol} SELL трейлинг SL → {resistance * 1.001:.4f} (H4 сопротивление {resistance:.4f})")
+            print(f"Текущая цена: {current:.4f} | P&L: {(pos['entry'] - current) / pos['entry'] * 100:+.2f}%")
+        else:
+            print("Нет H4 сопротивления выше цены — держать текущий SL")
+    return 0
+
+
 def cmd_stats(args) -> int:
     entries = [e for e in load_journal() if e["status"] in ("win", "loss")]
     if not entries:
@@ -177,6 +266,17 @@ def main() -> int:
     p_stats = sub.add_parser("stats")
     p_stats.add_argument("--by-symbol", action="store_true")
     p_stats.set_defaults(func=cmd_stats)
+
+    p_check = sub.add_parser("check")
+    p_check.set_defaults(func=cmd_check)
+
+    p_partial = sub.add_parser("partial")
+    p_partial.add_argument("--symbol", required=True)
+    p_partial.set_defaults(func=cmd_partial)
+
+    p_trail = sub.add_parser("trail")
+    p_trail.add_argument("--symbol", required=True)
+    p_trail.set_defaults(func=cmd_trail)
 
     args = parser.parse_args()
     return args.func(args)

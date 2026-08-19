@@ -35,6 +35,163 @@ MTF_GROUPS = [
     ("global", [("1wk", "2y")]),
 ]
 
+KILL_ZONES_UTC = {
+    "london_setup": (2, 5),    # 02:00-05:00 — сбор ликвидности
+    "london":       (7, 10),   # 07:00-10:00 — основные движения
+    "ny_overlap":   (12, 15),  # 12:00-15:00 — Нью-Йорк оверлап
+    "ny":           (15, 17),  # 15:00-17:00 — NY продолжение
+}
+
+
+def in_kill_zone(now_utc=None) -> tuple:
+    """(True/False, название зоны или None). Вне KZ — шум, ~70% движений фейк."""
+    from datetime import datetime, timezone
+    h = (now_utc or datetime.now(timezone.utc)).hour
+    for name, (start, end) in KILL_ZONES_UTC.items():
+        if start <= h < end:
+            return True, name
+    return False, None
+
+
+def m5_break_of_structure(yahoo_symbol: str, direction: str, zone_price: float = None,
+                          lookback: int = 40) -> dict:
+    """M5 Break of Structure в зоне входа.
+
+    direction: "buy" | "sell"
+    zone_price: уровень зоны ликвидности (проверка, что BOS в зоне).
+
+    Для BUY (цена у поддержки):
+      1. M5-свинги (k=2) за последние lookback свечей
+      2. lower low (стоп-хант ниже последнего swing low)
+      3. последняя закрытая свеча пробивает вверх swing high между свингами = BOS
+      4. entry = close, SL = под swing low * 0.9995 (≈12-15 пунктов GBPJPY)
+
+    Для SELL — зеркально. BOS считается только СВЕЖИМ (последняя закрытая
+    свеча выше/ниже уровня) — устаревший пробой не подтверждает вход.
+
+    Возвращает {"confirmed", "entry_price", "sl_price", "swing_level",
+    "r_ratio", "detail"}. На ошибках — {"confirmed": False}.
+    """
+    try:
+        df = fetch_candles(yahoo_symbol, "5m", "1d")
+        if len(df) < lookback:
+            return {"confirmed": False, "detail": f"мало M5 свечей: {len(df)}"}
+        df = df.tail(lookback)
+        highs = df["high"].values
+        lows = df["low"].values
+        closes = df["close"].values
+        n = len(closes)
+
+        if direction == "buy":
+            swings = find_swings(df, k=2, max_points=8)["swing_lows"]
+            if len(swings) < 2:
+                return {"confirmed": False, "detail": "нет 2 M5 swing lows"}
+            last_sl, prev_sl = swings[-1][1], swings[-2][1]
+            lower_low = last_sl < prev_sl
+            i_prev = df.index.get_loc(swings[-2][0])
+            i_last = df.index.get_loc(swings[-1][0])
+            swing_high_between = float(max(highs[min(i_prev, i_last):max(i_prev, i_last) + 1]))
+            bos = closes[-1] > swing_high_between
+            if bos:
+                entry = float(closes[-1])
+                sl = last_sl * 0.9995
+                if entry <= sl:
+                    return {"confirmed": False, "detail": "entry ниже SL"}
+                if entry > swing_high_between * 1.0015:
+                    return {"confirmed": False, "detail": f"вход далеко от пробоя ({swing_high_between}) — догон"}
+                if zone_price is not None and entry > zone_price * 1.003:
+                    return {"confirmed": False, "detail": f"BOS далеко от зоны ({zone_price})"}
+                r_ratio = round((swing_high_between - sl) / (entry - sl), 2)
+                return {
+                    "confirmed": True,
+                    "entry_price": round(entry, 5),
+                    "sl_price": round(sl, 5),
+                    "swing_level": round(swing_high_between, 5),
+                    "r_ratio": r_ratio,
+                    "detail": "lower low → пробой вверх" if lower_low else "пробой вверх без lower low",
+                }
+            return {"confirmed": False, "detail": "нет пробоя вверх"}
+
+        elif direction == "sell":
+            swings = find_swings(df, k=2, max_points=8)["swing_highs"]
+            if len(swings) < 2:
+                return {"confirmed": False, "detail": "нет 2 M5 swing highs"}
+            last_sh, prev_sh = swings[-1][1], swings[-2][1]
+            higher_high = last_sh > prev_sh
+            i_prev = df.index.get_loc(swings[-2][0])
+            i_last = df.index.get_loc(swings[-1][0])
+            swing_low_between = float(min(lows[min(i_prev, i_last):max(i_prev, i_last) + 1]))
+            bos = closes[-1] < swing_low_between
+            if bos:
+                entry = float(closes[-1])
+                sl = last_sh * 1.0005
+                if entry >= sl:
+                    return {"confirmed": False, "detail": "entry выше SL"}
+                if entry < swing_low_between * 0.9985:
+                    return {"confirmed": False, "detail": f"вход далеко от пробоя ({swing_low_between}) — догон"}
+                if zone_price is not None and entry < zone_price * 0.997:
+                    return {"confirmed": False, "detail": f"BOS далеко от зоны ({zone_price})"}
+                r_ratio = round((sl - swing_low_between) / (sl - entry), 2)
+                return {
+                    "confirmed": True,
+                    "entry_price": round(entry, 5),
+                    "sl_price": round(sl, 5),
+                    "swing_level": round(swing_low_between, 5),
+                    "r_ratio": r_ratio,
+                    "detail": "higher high → пробой вниз" if higher_high else "пробой вниз без higher high",
+                }
+            return {"confirmed": False, "detail": "нет пробоя вниз"}
+
+        return {"confirmed": False, "detail": "направление не buy/sell"}
+    except Exception as exc:
+        return {"confirmed": False, "detail": str(exc)}
+
+
+def asian_range(yahoo_symbol: str) -> dict:
+    """Азиатский диапазон (00:00-07:00 UTC). Пробой края → байас на разворот.
+
+    Азия ещё идёт (< 07:00 UTC) → берём вчерашнюю сессию.
+    Лондон/NY ~70% времени пробивают край и разворачиваются:
+    пробой High → sell-байас, пробой Low → buy-байас.
+    """
+    try:
+        df = fetch_candles(yahoo_symbol, "1h", "5d")
+        if len(df) < 10:
+            return {"bias": "neutral"}
+        df = df[~df.index.duplicated(keep="last")].sort_index()
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        if now.hour >= 7:
+            asian_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        else:
+            asian_start = (now - pd.Timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        asian_end = asian_start + pd.Timedelta(hours=7)
+        asian = df[(df.index >= asian_start) & (df.index < asian_end)]
+        if len(asian) < 3:
+            return {"bias": "neutral"}
+
+        asian_high = float(asian["high"].max())
+        asian_low = float(asian["low"].min())
+        last_price = float(df["close"].iloc[-1])
+        range_pct = (asian_high - asian_low) / asian_low * 100
+
+        bias, broken_level = "neutral", None
+        if last_price > asian_high * 1.0003:
+            bias, broken_level = "sell", asian_high
+        elif last_price < asian_low * 0.9997:
+            bias, broken_level = "buy", asian_low
+
+        return {
+            "high": asian_high,
+            "low": asian_low,
+            "range_pct": round(range_pct, 3),
+            "bias": bias,
+            "broken_level": broken_level,
+            "current_price": last_price,
+        }
+    except Exception:
+        return {"bias": "neutral"}
+
 
 def fetch_candles(yahoo_symbol: str, interval: str, range_: str) -> pd.DataFrame:
     """Свечи через цепочку провайдеров (TwelveData -> Finnhub -> Yahoo)."""

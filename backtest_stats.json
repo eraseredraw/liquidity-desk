@@ -3,15 +3,36 @@
   "symbols": [
     {
       "symbol": "XAUUSD",
-      "disabled": true
+      "disabled": false,
+      "trades_total": 42,
+      "trades_closed": 42,
+      "wins": 12,
+      "losses": 30,
+      "expectancy_r": 0.74,
+      "total_r": 30.99,
+      "max_drawdown_r": 13.47,
+      "winrate": 28.6,
+      "note": "best params DEV, holdout failed - demo validation required"
     },
     {
       "symbol": "GBPUSD",
-      "disabled": true
+      "disabled": false,
+      "trades_total": 113,
+      "expectancy_r": -0.07,
+      "total_r": -7.51,
+      "max_drawdown_r": 34.9,
+      "winrate": 41.6,
+      "note": "best params DEV negative, holdout failed - demo validation required"
     },
     {
       "symbol": "EURUSD",
-      "disabled": true
+      "disabled": false,
+      "trades_total": 48,
+      "expectancy_r": -0.28,
+      "total_r": -13.42,
+      "max_drawdown_r": 13.93,
+      "winrate": 45.8,
+      "note": "best params DEV negative, holdout failed - demo validation required"
     },
     {
       "symbol": "GBPJPY",
@@ -61,7 +82,13 @@
     },
     {
       "symbol": "DAX",
-      "disabled": true
+      "disabled": false,
+      "trades_total": 17,
+      "expectancy_r": 1.38,
+      "total_r": 23.45,
+      "max_drawdown_r": 5.22,
+      "winrate": 52.9,
+      "note": "best params DEV, holdout n=4 insufficient - demo validation required"
     }
   ],
   "errors": []

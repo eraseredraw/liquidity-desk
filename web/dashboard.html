@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Trading Dashboard</title>
+<style>
+body { margin: 0; font-family: Inter, -apple-system, sans-serif; background: #0B0E14; color: #F8FAFC; }
+.top { background: #111827; border-bottom: 1px solid #1E293B; padding: 16px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.logo { font-size: 18px; font-weight: 700; color: #38BDF8; }
+.tabs { display: flex; gap: 8px; }
+.tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; background: #1E293B; color: #9CA3AF; font-size: 14px; font-weight: 500; transition: all 0.15s; border: 1px solid transparent; }
+.tab:hover { background: #374151; color: #F8FAFC; }
+.tab.active { background: #38BDF8; color: #0B0E14; border-color: #38BDF8; }
+.tab.off { opacity: 0.4; cursor: not-allowed; }
+.main { display: grid; grid-template-columns: 320px 1fr; gap: 0; height: calc(100vh - 72px); }
+.sidebar { background: #111827; border-right: 1px solid #1E293B; padding: 20px; overflow-y: auto; }
+.card { background: #1E293B; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #374151; }
+.card h3 { margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; }
+.signal-box { display: flex; flex-direction: column; gap: 12px; }
+.signal-btn { padding: 20px; border-radius: 12px; font-size: 20px; font-weight: 700; text-align: center; cursor: pointer; transition: all 0.2s; border: 2px solid; }
+.signal-btn.buy { background: #089981; color: #fff; border-color: #0EAD97; box-shadow: 0 4px 16px rgba(8,153,129,0.3); }
+.signal-btn.buy:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(8,153,129,0.4); }
+.signal-btn.sell { background: #F23645; color: #fff; border-color: #FF4A5A; box-shadow: 0 4px 16px rgba(242,54,69,0.3); }
+.signal-btn.sell:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(242,54,69,0.4); }
+.signal-btn.wait { background: #374151; color: #9CA3AF; border-color: #4B5563; cursor: default; }
+.signal-btn.disabled { background: #1E293B; color: #6B7280; border-color: #374151; cursor: not-allowed; }
+.score { font-size: 48px; font-weight: 800; color: #38BDF8; text-align: center; margin: 8px 0; }
+.score-label { font-size: 13px; color: #9CA3AF; text-align: center; margin-bottom: 12px; }
+.reason { font-size: 13px; color: #D1D5DB; line-height: 1.6; padding: 8px 12px; background: #111827; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #38BDF8; }
+.stat { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #374151; }
+.stat:last-child { border-bottom: none; }
+.stat-label { font-size: 13px; color: #9CA3AF; }
+.stat-value { font-size: 14px; font-weight: 600; color: #F8FAFC; }
+.stat-value.green { color: #089981; }
+.stat-value.red { color: #F23645; }
+.content { padding: 20px; overflow-y: auto; }
+.chart-container { background: #111827; border-radius: 12px; padding: 20px; border: 1px solid #1E293B; margin-bottom: 20px; }
+.chart-img { width: 100%; border-radius: 8px; display: block; }
+.advice-text { background: #1E293B; border-radius: 12px; padding: 20px; border: 1px solid #374151; font-size: 14px; line-height: 1.8; color: #D1D5DB; }
+.advice-text h4 { margin: 0 0 12px 0; font-size: 16px; color: #38BDF8; font-weight: 600; }
+.advice-text p { margin: 8px 0; }
+.advice-text b { color: #F8FAFC; font-weight: 600; }
+.loading { text-align: center; padding: 40px; color: #9CA3AF; }
+.refresh-btn { padding: 8px 16px; background: #1E293B; color: #F8FAFC; border: 1px solid #374151; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.refresh-btn:hover { background: #374151; border-color: #4B5563; }
+.alert { padding: 12px 16px; background: #F97316; color: #fff; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 16px; border: 1px solid #FB923C; }
+.entry-params { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.entry-param { background: #111827; padding: 10px; border-radius: 8px; text-align: center; }
+.entry-param-label { font-size: 11px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.entry-param-value { font-size: 16px; font-weight: 700; color: #F8FAFC; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">⚡ TRADE DASHBOARD</div>
+  <div class="tabs" id="tabs"></div>
+  <button class="refresh-btn" onclick="refresh()">Обновить</button>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div id="sidebar-content" class="loading">Загрузка...</div>
+  </div>
+  <div class="content">
+    <div id="main-content" class="loading">Загрузка...</div>
+  </div>
+</div>
+
+<script>
+const SYMBOLS = ["XAUUSD", "GBPUSD", "EURUSD", "GBPJPY", "DAX"];
+let current = { symbol: "GBPJPY" };
+let allAdvices = {};
+
+async function loadAdvices() {
+  try {
+    const res = await fetch('/api/advices');
+    allAdvices = await res.json();
+  } catch (e) {
+    console.error('Failed to load advices', e);
+  }
+}
+
+async function init() {
+  await loadAdvices();
+  const tabs = document.getElementById("tabs");
+  for (const s of SYMBOLS) {
+    const enabled = allAdvices[s]?.enabled !== false;
+    const el = document.createElement("div");
+    el.className = "tab" + (s === current.symbol ? " active" : "") + (enabled ? "" : " off");
+    el.textContent = s;
+    el.onclick = () => {
+      if (!enabled) return;
+      current.symbol = s;
+      tabs.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      el.classList.add("active");
+      render();
+    };
+    tabs.appendChild(el);
+  }
+  render();
+}
+
+function render() {
+  const adv = allAdvices[current.symbol];
+  if (!adv) {
+    document.getElementById("sidebar-content").innerHTML = '<div class="loading">Нет данных</div>';
+    document.getElementById("main-content").innerHTML = '<div class="loading">Нет данных</div>';
+    return;
+  }
+
+  const signal = adv.signal || "neutral";
+  const score = adv.entry_score || 0;
+  const enabled = adv.enabled !== false;
+  
+  let signalClass = "wait";
+  let signalText = "ЖДАТЬ";
+  if (!enabled) {
+    signalClass = "disabled";
+    signalText = "ОТКЛЮЧЁН";
+  } else if (signal === "buy") {
+    signalClass = "buy";
+    signalText = "🚀 ПОКУПАТЬ";
+  } else if (signal === "sell") {
+    signalClass = "sell";
+    signalText = "🔻 ПРОДАВАТЬ";
+  }
+
+  const reasons = adv.entry_reasons || [];
+  const veto = adv.veto;
+
+  let sidebar = '';
+  
+  if (veto) {
+    sidebar += `<div class="alert">⚠️ ${veto}</div>`;
+  }
+
+  sidebar += `<div class="card">
+    <h3>Сигнал</h3>
+    <div class="signal-box">
+      <div class="signal-btn ${signalClass}">${signalText}</div>
+      <div class="score">${score}</div>
+      <div class="score-label">СКОР ВХОДА</div>
+    </div>
+  </div>`;
+
+  if (enabled && reasons.length > 0) {
+    sidebar += `<div class="card"><h3>Почему</h3>`;
+    reasons.slice(0, 5).forEach(r => {
+      sidebar += `<div class="reason">${r}</div>`;
+    });
+    sidebar += `</div>`;
+  }
+
+  if (adv.entry && enabled && signal !== "neutral") {
+    sidebar += `<div class="card">
+      <h3>Параметры входа</h3>
+      <div class="entry-params">
+        <div class="entry-param">
+          <div class="entry-param-label">Вход</div>
+          <div class="entry-param-value">${adv.entry.toFixed(3)}</div>
+        </div>
+        <div class="entry-param">
+          <div class="entry-param-label">Stop Loss</div>
+          <div class="entry-param-value">${adv.sl.toFixed(3)}</div>
+        </div>
+        <div class="entry-param">
+          <div class="entry-param-label">Take Profit</div>
+          <div class="entry-param-value">${adv.tp.toFixed(3)}</div>
+        </div>
+        <div class="entry-param">
+          <div class="entry-param-label">Лот</div>
+          <div class="entry-param-value">${adv.lot || '—'}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  sidebar += `<div class="card">
+    <h3>Статистика</h3>
+    <div class="stat">
+      <span class="stat-label">Цена</span>
+      <span class="stat-value">${adv.last_price?.toFixed(3) || '—'}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Тренд D1</span>
+      <span class="stat-value">${adv.trends?.d1 || '—'}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Тренд H4</span>
+      <span class="stat-value">${adv.trends?.h4 || '—'}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Тренд H1</span>
+      <span class="stat-value">${adv.trends?.h1 || '—'}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">RSI H1</span>
+      <span class="stat-value">${adv.rsi_h1?.toFixed(0) || '—'}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">ATR H1</span>
+      <span class="stat-value">${adv.atr_h1?.toFixed(2) || '—'}</span>
+    </div>
+  </div>`;
+
+  if (adv.backtest) {
+    const bt = adv.backtest;
+    sidebar += `<div class="card">
+      <h3>Бэктест</h3>
+      <div class="stat">
+        <span class="stat-label">Сделок</span>
+        <span class="stat-value">${bt.trades_closed || 0}</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Винрейт</span>
+        <span class="stat-value ${bt.winrate >= 50 ? 'green' : 'red'}">${bt.winrate?.toFixed(1) || 0}%</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Expectancy</span>
+        <span class="stat-value ${bt.expectancy_r >= 0 ? 'green' : 'red'}">${bt.expectancy_r?.toFixed(2) || 0}R</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Total R</span>
+        <span class="stat-value ${bt.total_r >= 0 ? 'green' : 'red'}">${bt.total_r?.toFixed(1) || 0}R</span>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById("sidebar-content").innerHTML = sidebar;
+
+  let main = '';
+  if (adv.chart_path) {
+    main += `<div class="chart-container">
+      <img src="/snapshots/${adv.chart_path.split('/').pop()}" class="chart-img" alt="Chart ${current.symbol}">
+    </div>`;
+  }
+
+  if (adv.advice_text) {
+    main += `<div class="advice-text">${adv.advice_text}</div>`;
+  }
+
+  document.getElementById("main-content").innerHTML = main || '<div class="loading">Нет данных для отображения</div>';
+}
+
+async function refresh() {
+  document.getElementById("sidebar-content").innerHTML = '<div class="loading">Обновление...</div>';
+  document.getElementById("main-content").innerHTML = '<div class="loading">Обновление...</div>';
+  await loadAdvices();
+  render();
+}
+
+init().catch(e => {
+  console.error(e);
+  document.body.innerHTML = "<pre style='color:#F23645; padding:20px;'>Ошибка загрузки: " + e + "</pre>";
+});
+</script>
+</body>
+</html>

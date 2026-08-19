@@ -2,6 +2,6 @@
   "interval_min": 10,
   "zone_pct": 0.5,
   "zone_pct_atr_mult": 0.5,
-  "symbols": ["GBPJPY"],
+  "symbols": ["XAUUSD", "GBPUSD", "EURUSD", "GBPJPY", "DAX"],
   "alerts_dir": "alerts"
 }

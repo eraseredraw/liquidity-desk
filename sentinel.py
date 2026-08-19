@@ -23,7 +23,7 @@ except ImportError:
     winsound = None
 
 sys.path.insert(0, str(Path(__file__).parent))
-from strategy import analyze_all, YAHOO_SYMBOLS
+from strategy import analyze_all, YAHOO_SYMBOLS, in_kill_zone
 
 HERE = Path(__file__).parent
 CONFIG = HERE / "sentinel_config.json"
@@ -62,6 +62,18 @@ def beep(kind: str) -> None:
         for _ in range(ALERT_SOUNDS.get(kind, 1)):
             winsound.MessageBeep(winsound.MB_ICONEXCLAMATION if kind in ("zone", "signal") else winsound.MB_ICONASTERISK)
             time.sleep(0.15)
+    except Exception:
+        pass
+
+
+def _telegram(kind: str, **kw) -> None:
+    """Отправить алерт в Telegram, если настроен (опционально, никогда не падает)."""
+    try:
+        from telegram_alert import alert_zone, alert_signal_change
+        if kind == "zone":
+            alert_zone(kw["sym"], kw["price"], kw["zone_name"], kw["signal"], kw.get("score") or 0)
+        elif kind == "signal":
+            alert_signal_change(kw["sym"], kw["old_signal"], kw["new_signal"], kw["price"])
     except Exception:
         pass
 
@@ -148,21 +160,27 @@ def check(cfg: dict) -> dict:
         if in_zone:
             nearest = zones[0]
             side_text = "зона лонга (отбой/пробой вниз — решение по структуре)" if nearest["side"] == "buy" else "зона шорта или пробоя вверх — решение по структуре"
+            kz_in, kz_name = in_kill_zone()
+            kz_tag = f"[KZ: {kz_name}]" if kz_in else "[вне KZ]"
             if not prev_alert or (dt.datetime.fromisoformat(prev_alert) < dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=cfg["interval_min"] * 2)):
-                msg = (f"ЗОНА {sym}: цена {last} вошла в зону {nearest['key']} = {nearest['level']} "
+                msg = (f"ЗОНА {sym} {kz_tag}: цена {last} вошла в зону {nearest['key']} = {nearest['level']} "
                        f"(дист {nearest['dist_pct']}%). Оценка: {side_text}. "
                        f"Структура: поддержка {a['nearest_support']}, сопротивление {a['nearest_resistance']}, "
                        f"тренд {a['trend_h1']}, confluence={a['confluence']}")
                 beep("zone")
+                _telegram("zone", sym=sym, price=last, zone_name=nearest["key"], signal=a["signal"], score=None)
                 log(f"[ALERT] {msg}")
                 result["alerts"].append(msg)
                 s["last_alert_ts"] = dt.datetime.now(dt.timezone.utc).isoformat()
                 s["alert_type"] = "zone"
                 (alerts_dir / f"alert_{sym}_{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d_%H%M%S')}.txt").write_text(msg, encoding="utf-8")
         elif a["signal"] != "neutral" and prev_signal != a["signal"]:
-            msg = (f"СИГНАЛ {sym}: {a['signal'].upper()} (было {prev_signal}). Цена {last}, "
+            kz_in, kz_name = in_kill_zone()
+            kz_tag = f"[KZ: {kz_name}]" if kz_in else "[вне KZ]"
+            msg = (f"СИГНАЛ {sym} {kz_tag}: {a['signal'].upper()} (было {prev_signal}). Цена {last}, "
                    f"пул {a['liquidity_pool_below']}/{a['liquidity_pool_above']}, тренд {a['trend_h1']}")
             beep("signal")
+            _telegram("signal", sym=sym, price=last, old_signal=prev_signal, new_signal=a["signal"])
             log(f"[ALERT] {msg}")
             result["alerts"].append(msg)
             s["last_alert_ts"] = dt.datetime.now(dt.timezone.utc).isoformat()

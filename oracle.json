@@ -1,0 +1,456 @@
+{
+  "advice_DAX_20260818_0842.md": {
+    "symbol": "DAX",
+    "ts": "2026-08-18T08:42:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 26081.689,
+    "buy_zone_reached": true,
+    "sell_zone_level": 26573.5,
+    "sell_zone_reached": false
+  },
+  "advice_DAX_20260818_0859.md": {
+    "symbol": "DAX",
+    "ts": "2026-08-18T08:59:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 26081.689,
+    "buy_zone_reached": true,
+    "sell_zone_level": 26573.5,
+    "sell_zone_reached": false
+  },
+  "advice_DAX_20260818_0903.md": {
+    "symbol": "DAX",
+    "ts": "2026-08-18T09:03:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 26081.689,
+    "buy_zone_reached": true,
+    "sell_zone_level": 26573.5,
+    "sell_zone_reached": false
+  },
+  "advice_DAX_20260818_0907.md": {
+    "symbol": "DAX",
+    "ts": "2026-08-18T09:07:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 26081.689,
+    "buy_zone_reached": true,
+    "sell_zone_level": 26573.5,
+    "sell_zone_reached": false
+  },
+  "advice_EURUSD_20260817_1739.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-17T17:39:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_EURUSD_20260817_1748.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-17T17:48:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_EURUSD_20260817_1749.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-17T17:49:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_EURUSD_20260817_1750.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-17T17:50:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_EURUSD_20260817_1805.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-17T18:05:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_EURUSD_20260817_1810.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-17T18:10:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_EURUSD_20260817_1812.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-17T18:12:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.152,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.162,
+    "sell_zone_reached": true
+  },
+  "advice_EURUSD_20260817_1813.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-17T18:13:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.152,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.162,
+    "sell_zone_reached": true
+  },
+  "advice_EURUSD_20260817_1822.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-17T18:22:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.152,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.162,
+    "sell_zone_reached": true
+  },
+  "advice_EURUSD_20260817_2035.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-17T20:35:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.152,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.162,
+    "sell_zone_reached": true
+  },
+  "advice_EURUSD_20260818_0749.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-18T07:49:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.152,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.162,
+    "sell_zone_reached": true
+  },
+  "advice_EURUSD_20260818_0842.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-18T08:42:00+00:00",
+    "signal": "DISABLED",
+    "buy_zone_level": 1.152,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.158,
+    "sell_zone_reached": true
+  },
+  "advice_EURUSD_20260818_0859.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-18T08:59:00+00:00",
+    "signal": "DISABLED",
+    "buy_zone_level": 1.152,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.162,
+    "sell_zone_reached": true
+  },
+  "advice_EURUSD_20260818_0903.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-18T09:03:00+00:00",
+    "signal": "DISABLED",
+    "buy_zone_level": 1.152,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.162,
+    "sell_zone_reached": true
+  },
+  "advice_EURUSD_20260818_0907.md": {
+    "symbol": "EURUSD",
+    "ts": "2026-08-18T09:07:00+00:00",
+    "signal": "DISABLED",
+    "buy_zone_level": 1.152,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.158,
+    "sell_zone_reached": true
+  },
+  "advice_GBPJPY_20260817_1740.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-17T17:40:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPJPY_20260817_1748.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-17T17:48:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPJPY_20260817_1749.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-17T17:49:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPJPY_20260817_1750.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-17T17:50:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPJPY_20260817_1805.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-17T18:05:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPJPY_20260817_1810.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-17T18:10:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPJPY_20260817_1812.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-17T18:12:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 218.002,
+    "sell_zone_reached": false
+  },
+  "advice_GBPJPY_20260817_1813.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-17T18:13:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 218.002,
+    "sell_zone_reached": false
+  },
+  "advice_GBPJPY_20260817_1822.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-17T18:22:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 218.002,
+    "sell_zone_reached": false
+  },
+  "advice_GBPJPY_20260817_2035.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-17T20:35:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 218.002,
+    "sell_zone_reached": false
+  },
+  "advice_GBPJPY_20260818_0749.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-18T07:49:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 218.002,
+    "sell_zone_reached": false
+  },
+  "advice_GBPJPY_20260818_0842.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-18T08:42:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 218.002,
+    "sell_zone_reached": false
+  },
+  "advice_GBPJPY_20260818_0859.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-18T08:59:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 218.002,
+    "sell_zone_reached": false
+  },
+  "advice_GBPJPY_20260818_0903.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-18T09:03:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 218.002,
+    "sell_zone_reached": false
+  },
+  "advice_GBPJPY_20260818_0907.md": {
+    "symbol": "GBPJPY",
+    "ts": "2026-08-18T09:07:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 218.002,
+    "sell_zone_reached": false
+  },
+  "advice_GBPUSD_20260817_1736.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T17:36:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPUSD_20260817_1739.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T17:39:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPUSD_20260817_1748.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T17:48:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPUSD_20260817_1749.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T17:49:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPUSD_20260817_1750.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T17:50:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPUSD_20260817_1805.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T18:05:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPUSD_20260817_1810.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T18:10:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_GBPUSD_20260817_1812.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T18:12:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.348,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.354,
+    "sell_zone_reached": true
+  },
+  "advice_GBPUSD_20260817_1813.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T18:13:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.348,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.354,
+    "sell_zone_reached": true
+  },
+  "advice_GBPUSD_20260817_1822.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T18:22:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.348,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.354,
+    "sell_zone_reached": true
+  },
+  "advice_GBPUSD_20260817_2035.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-17T20:35:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.348,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.354,
+    "sell_zone_reached": true
+  },
+  "advice_GBPUSD_20260818_0749.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-18T07:49:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.348,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.354,
+    "sell_zone_reached": true
+  },
+  "advice_GBPUSD_20260818_0842.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-18T08:42:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.348,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.354,
+    "sell_zone_reached": true
+  },
+  "advice_GBPUSD_20260818_0859.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-18T08:59:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.348,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.354,
+    "sell_zone_reached": true
+  },
+  "advice_GBPUSD_20260818_0903.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-18T09:03:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.348,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.354,
+    "sell_zone_reached": true
+  },
+  "advice_GBPUSD_20260818_0907.md": {
+    "symbol": "GBPUSD",
+    "ts": "2026-08-18T09:07:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 1.348,
+    "buy_zone_reached": true,
+    "sell_zone_level": 1.354,
+    "sell_zone_reached": true
+  },
+  "advice_XAUUSD_20260817_1736.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T17:36:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_XAUUSD_20260817_1739.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T17:39:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_XAUUSD_20260817_1748.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T17:48:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_XAUUSD_20260817_1749.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T17:49:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_XAUUSD_20260817_1750.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T17:50:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_XAUUSD_20260817_1805.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T18:05:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_XAUUSD_20260817_1810.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T18:10:00+00:00",
+    "signal": "NEUTRAL"
+  },
+  "advice_XAUUSD_20260817_1812.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T18:12:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 4572.8,
+    "sell_zone_reached": false
+  },
+  "advice_XAUUSD_20260817_1813.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T18:13:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 4572.8,
+    "sell_zone_reached": false
+  },
+  "advice_XAUUSD_20260817_1822.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T18:22:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 4572.8,
+    "sell_zone_reached": false
+  },
+  "advice_XAUUSD_20260817_2035.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-17T20:35:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 4572.8,
+    "sell_zone_reached": false
+  },
+  "advice_XAUUSD_20260818_0749.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-18T07:49:00+00:00",
+    "signal": "NEUTRAL",
+    "sell_zone_level": 4591.8,
+    "sell_zone_reached": false
+  },
+  "advice_XAUUSD_20260818_0842.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-18T08:42:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 4315.0,
+    "buy_zone_reached": false
+  },
+  "advice_XAUUSD_20260818_0859.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-18T08:59:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 4315.0,
+    "buy_zone_reached": false
+  },
+  "advice_XAUUSD_20260818_0903.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-18T09:03:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 4315.0,
+    "buy_zone_reached": false
+  },
+  "advice_XAUUSD_20260818_0907.md": {
+    "symbol": "XAUUSD",
+    "ts": "2026-08-18T09:07:00+00:00",
+    "signal": "NEUTRAL",
+    "buy_zone_level": 4315.0,
+    "buy_zone_reached": false
+  }
+}

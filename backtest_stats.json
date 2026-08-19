@@ -1,0 +1,68 @@
+{
+  "generated": "2026-08-18T15:33:37.055601+00:00",
+  "symbols": [
+    {
+      "symbol": "XAUUSD",
+      "disabled": true
+    },
+    {
+      "symbol": "GBPUSD",
+      "disabled": true
+    },
+    {
+      "symbol": "EURUSD",
+      "disabled": true
+    },
+    {
+      "symbol": "GBPJPY",
+      "trades_total": 52,
+      "trades_closed": 45,
+      "wins": 29,
+      "losses": 16,
+      "flats": 7,
+      "winrate": 64.4,
+      "avg_r_win": 2.22,
+      "avg_r_loss": -1.0,
+      "expectancy_r": 1.072,
+      "total_r": 48.25,
+      "max_drawdown_r": 5.13,
+      "last_trades": [
+        {
+          "date": "2026-05-17",
+          "side": "buy",
+          "result": "win",
+          "r": 3.27
+        },
+        {
+          "date": "2026-06-18",
+          "side": "buy",
+          "result": "win",
+          "r": 2.51
+        },
+        {
+          "date": "2026-06-21",
+          "side": "buy",
+          "result": "win",
+          "r": 2.62
+        },
+        {
+          "date": "2026-06-23",
+          "side": "buy",
+          "result": "win",
+          "r": 1.96
+        },
+        {
+          "date": "2026-06-24",
+          "side": "buy",
+          "result": "win",
+          "r": 2.49
+        }
+      ]
+    },
+    {
+      "symbol": "DAX",
+      "disabled": true
+    }
+  ],
+  "errors": []
+}

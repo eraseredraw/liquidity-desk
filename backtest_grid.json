@@ -1,0 +1,590 @@
+{
+  "generated": "2026-08-18T15:21:07.744485+00:00",
+  "symbols": {
+    "XAUUSD": {
+      "default": {
+        "zone": 1.01,
+        "sl_buf": 0.995,
+        "tp_buf": 1.005,
+        "hold": 10,
+        "k": 2,
+        "filter_": "h4",
+        "trades": 0,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "best": {
+        "zone": 1.005,
+        "sl_buf": 0.998,
+        "tp_buf": 1.008,
+        "hold": 20,
+        "k": 2,
+        "filter_": "w1",
+        "trades": 42,
+        "exp": 0.7377969060026704,
+        "winrate": 28.6,
+        "total": 30.99,
+        "maxdd": 13.47
+      },
+      "best_oos_6m": {
+        "trades": 4,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "default_oos_6m": {
+        "trades": 0,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "best_holdout_6m": {
+        "trades": 20,
+        "exp": -0.6735161712795396,
+        "winrate": 5.0,
+        "total": -13.47,
+        "maxdd": 13.47
+      },
+      "holdout_ok": false,
+      "top5": [
+        {
+          "zone": 1.005,
+          "sl_buf": 0.998,
+          "tp_buf": 1.008,
+          "hold": 20,
+          "k": 2,
+          "filter_": "w1",
+          "trades": 42,
+          "exp": 0.7377969060026704,
+          "winrate": 28.6,
+          "total": 30.99,
+          "maxdd": 13.47
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.993,
+          "tp_buf": 1.008,
+          "hold": 20,
+          "k": 2,
+          "filter_": "w1",
+          "trades": 40,
+          "exp": 0.7032758427503929,
+          "winrate": 52.5,
+          "total": 28.13,
+          "maxdd": 11.48
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.998,
+          "tp_buf": 1.003,
+          "hold": 10,
+          "k": 2,
+          "filter_": "w1",
+          "trades": 42,
+          "exp": 0.6604112092512932,
+          "winrate": 35.7,
+          "total": 27.74,
+          "maxdd": 11.0
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.998,
+          "tp_buf": 1.003,
+          "hold": 20,
+          "k": 2,
+          "filter_": "w1",
+          "trades": 42,
+          "exp": 0.6604112092512932,
+          "winrate": 35.7,
+          "total": 27.74,
+          "maxdd": 11.0
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.993,
+          "tp_buf": 1.005,
+          "hold": 20,
+          "k": 2,
+          "filter_": "w1",
+          "trades": 42,
+          "exp": 0.6194696072911662,
+          "winrate": 54.8,
+          "total": 26.02,
+          "maxdd": 12.32
+        }
+      ]
+    },
+    "GBPUSD": {
+      "default": {
+        "zone": 1.01,
+        "sl_buf": 0.995,
+        "tp_buf": 1.005,
+        "hold": 10,
+        "k": 2,
+        "filter_": "h4",
+        "trades": 5,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "best": {
+        "zone": 1.005,
+        "sl_buf": 0.995,
+        "tp_buf": 1.003,
+        "hold": 10,
+        "k": 1,
+        "filter_": "w1",
+        "trades": 113,
+        "exp": -0.06649269513514543,
+        "winrate": 41.6,
+        "total": -7.51,
+        "maxdd": 34.9
+      },
+      "best_oos_6m": {
+        "trades": 25,
+        "exp": -0.5585115482667269,
+        "winrate": 16.0,
+        "total": -13.96,
+        "maxdd": 21.0
+      },
+      "default_oos_6m": {
+        "trades": 0,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "best_holdout_6m": {
+        "trades": 30,
+        "exp": -0.6547446000991815,
+        "winrate": 23.3,
+        "total": -19.64,
+        "maxdd": 21.79
+      },
+      "holdout_ok": false,
+      "top5": [
+        {
+          "zone": 1.005,
+          "sl_buf": 0.995,
+          "tp_buf": 1.003,
+          "hold": 10,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 113,
+          "exp": -0.06649269513514543,
+          "winrate": 41.6,
+          "total": -7.51,
+          "maxdd": 34.9
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.998,
+          "tp_buf": 1.003,
+          "hold": 10,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 108,
+          "exp": -0.08654154638394748,
+          "winrate": 35.2,
+          "total": -9.35,
+          "maxdd": 29.58
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.995,
+          "tp_buf": 1.003,
+          "hold": 20,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 118,
+          "exp": -0.09286869008714585,
+          "winrate": 40.7,
+          "total": -10.96,
+          "maxdd": 38.9
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.998,
+          "tp_buf": 1.003,
+          "hold": 20,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 110,
+          "exp": -0.10314988190423935,
+          "winrate": 34.5,
+          "total": -11.35,
+          "maxdd": 31.58
+        },
+        {
+          "zone": 1.015,
+          "sl_buf": 0.995,
+          "tp_buf": 1.003,
+          "hold": 10,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 132,
+          "exp": -0.10622978820006414,
+          "winrate": 42.4,
+          "total": -14.02,
+          "maxdd": 42.39
+        }
+      ]
+    },
+    "EURUSD": {
+      "default": {
+        "zone": 1.01,
+        "sl_buf": 0.995,
+        "tp_buf": 1.005,
+        "hold": 10,
+        "k": 2,
+        "filter_": "h4",
+        "trades": 0,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "best": {
+        "zone": 1.01,
+        "sl_buf": 0.993,
+        "tp_buf": 1.003,
+        "hold": 5,
+        "k": 1,
+        "filter_": "w1",
+        "trades": 48,
+        "exp": -0.2795603297544336,
+        "winrate": 45.8,
+        "total": -13.42,
+        "maxdd": 13.93
+      },
+      "best_oos_6m": {
+        "trades": 14,
+        "exp": 0.09852640729896855,
+        "winrate": 64.3,
+        "total": 1.38,
+        "maxdd": 3.45
+      },
+      "default_oos_6m": {
+        "trades": 0,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "best_holdout_6m": {
+        "trades": 16,
+        "exp": -0.873468998648527,
+        "winrate": 6.2,
+        "total": -13.98,
+        "maxdd": 13.98
+      },
+      "holdout_ok": false,
+      "top5": [
+        {
+          "zone": 1.01,
+          "sl_buf": 0.993,
+          "tp_buf": 1.003,
+          "hold": 5,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 48,
+          "exp": -0.2795603297544336,
+          "winrate": 45.8,
+          "total": -13.42,
+          "maxdd": 13.93
+        },
+        {
+          "zone": 1.015,
+          "sl_buf": 0.993,
+          "tp_buf": 1.003,
+          "hold": 5,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 48,
+          "exp": -0.2795603297544336,
+          "winrate": 45.8,
+          "total": -13.42,
+          "maxdd": 13.93
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.993,
+          "tp_buf": 1.003,
+          "hold": 5,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 44,
+          "exp": -0.3082836452864947,
+          "winrate": 43.2,
+          "total": -13.56,
+          "maxdd": 14.08
+        },
+        {
+          "zone": 1.015,
+          "sl_buf": 0.993,
+          "tp_buf": 1.005,
+          "hold": 10,
+          "k": 2,
+          "filter_": "w1",
+          "trades": 81,
+          "exp": -0.36420409631187906,
+          "winrate": 33.3,
+          "total": -29.5,
+          "maxdd": 31.03
+        },
+        {
+          "zone": 1.01,
+          "sl_buf": 0.993,
+          "tp_buf": 1.003,
+          "hold": 20,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 89,
+          "exp": -0.36469889374189157,
+          "winrate": 37.1,
+          "total": -32.46,
+          "maxdd": 33.56
+        }
+      ]
+    },
+    "GBPJPY": {
+      "default": {
+        "zone": 1.01,
+        "sl_buf": 0.995,
+        "tp_buf": 1.005,
+        "hold": 10,
+        "k": 2,
+        "filter_": "h4",
+        "trades": 3,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "best": {
+        "zone": 1.005,
+        "sl_buf": 0.995,
+        "tp_buf": 1.008,
+        "hold": 20,
+        "k": 1,
+        "filter_": "w1",
+        "trades": 45,
+        "exp": 1.0726696521306585,
+        "winrate": 64.4,
+        "total": 48.27,
+        "maxdd": 5.13
+      },
+      "best_oos_6m": {
+        "trades": 8,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "default_oos_6m": {
+        "trades": 3,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "best_holdout_6m": {
+        "trades": 21,
+        "exp": 1.6320515885706852,
+        "winrate": 90.5,
+        "total": 34.27,
+        "maxdd": 2.0
+      },
+      "holdout_ok": true,
+      "top5": [
+        {
+          "zone": 1.005,
+          "sl_buf": 0.995,
+          "tp_buf": 1.008,
+          "hold": 20,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 45,
+          "exp": 1.0726696521306585,
+          "winrate": 64.4,
+          "total": 48.27,
+          "maxdd": 5.13
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.995,
+          "tp_buf": 1.008,
+          "hold": 20,
+          "k": 2,
+          "filter_": "w1",
+          "trades": 48,
+          "exp": 1.0538015993550884,
+          "winrate": 68.8,
+          "total": 50.58,
+          "maxdd": 7.55
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.998,
+          "tp_buf": 1.008,
+          "hold": 20,
+          "k": 2,
+          "filter_": "w1",
+          "trades": 48,
+          "exp": 0.9616763624268908,
+          "winrate": 47.9,
+          "total": 46.16,
+          "maxdd": 7.84
+        },
+        {
+          "zone": 1.005,
+          "sl_buf": 0.998,
+          "tp_buf": 1.008,
+          "hold": 20,
+          "k": 1,
+          "filter_": "w1",
+          "trades": 48,
+          "exp": 0.9384596238079053,
+          "winrate": 39.6,
+          "total": 45.05,
+          "maxdd": 6.0
+        },
+        {
+          "zone": 1.01,
+          "sl_buf": 0.995,
+          "tp_buf": 1.008,
+          "hold": 20,
+          "k": 2,
+          "filter_": "w1",
+          "trades": 62,
+          "exp": 0.9091423367844209,
+          "winrate": 67.7,
+          "total": 56.37,
+          "maxdd": 9.25
+        }
+      ]
+    },
+    "DAX": {
+      "default": {
+        "zone": 1.01,
+        "sl_buf": 0.995,
+        "tp_buf": 1.005,
+        "hold": 10,
+        "k": 2,
+        "filter_": "h4",
+        "trades": 19,
+        "exp": -0.10422796222931165,
+        "winrate": 47.4,
+        "total": -1.98,
+        "maxdd": 8.0
+      },
+      "best": {
+        "zone": 1.01,
+        "sl_buf": 0.998,
+        "tp_buf": 1.008,
+        "hold": 5,
+        "k": 1,
+        "filter_": "h4",
+        "trades": 17,
+        "exp": 1.3796399132487605,
+        "winrate": 52.9,
+        "total": 23.45,
+        "maxdd": 5.22
+      },
+      "best_oos_6m": {
+        "trades": 11,
+        "exp": -0.10949750981971977,
+        "winrate": 36.4,
+        "total": -1.2,
+        "maxdd": 6.08
+      },
+      "default_oos_6m": {
+        "trades": 15,
+        "exp": 0.13464458117620523,
+        "winrate": 60.0,
+        "total": 2.02,
+        "maxdd": 4.0
+      },
+      "best_holdout_6m": {
+        "trades": 4,
+        "exp": null,
+        "winrate": null,
+        "total": null,
+        "maxdd": null
+      },
+      "holdout_ok": false,
+      "top5": [
+        {
+          "zone": 1.01,
+          "sl_buf": 0.998,
+          "tp_buf": 1.008,
+          "hold": 5,
+          "k": 1,
+          "filter_": "h4",
+          "trades": 17,
+          "exp": 1.3796399132487605,
+          "winrate": 52.9,
+          "total": 23.45,
+          "maxdd": 5.22
+        },
+        {
+          "zone": 1.01,
+          "sl_buf": 0.998,
+          "tp_buf": 1.008,
+          "hold": 5,
+          "k": 1,
+          "filter_": "d1",
+          "trades": 17,
+          "exp": 1.3796399132487605,
+          "winrate": 52.9,
+          "total": 23.45,
+          "maxdd": 5.22
+        },
+        {
+          "zone": 1.01,
+          "sl_buf": 0.998,
+          "tp_buf": 1.008,
+          "hold": 5,
+          "k": 1,
+          "filter_": "both",
+          "trades": 17,
+          "exp": 1.3796399132487605,
+          "winrate": 52.9,
+          "total": 23.45,
+          "maxdd": 5.22
+        },
+        {
+          "zone": 1.01,
+          "sl_buf": 0.998,
+          "tp_buf": 1.005,
+          "hold": 10,
+          "k": 1,
+          "filter_": "h4",
+          "trades": 20,
+          "exp": 1.3386447239920785,
+          "winrate": 70.0,
+          "total": 26.77,
+          "maxdd": 4.14
+        },
+        {
+          "zone": 1.01,
+          "sl_buf": 0.998,
+          "tp_buf": 1.005,
+          "hold": 10,
+          "k": 1,
+          "filter_": "d1",
+          "trades": 20,
+          "exp": 1.3386447239920785,
+          "winrate": 70.0,
+          "total": 26.77,
+          "maxdd": 4.14
+        }
+      ]
+    }
+  }
+}

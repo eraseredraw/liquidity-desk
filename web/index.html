@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Trading Dashboard</title>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #131722; color: #d1d4dc; }
+  .top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid #2a2e39; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 6px; }
+  .tab { padding: 6px 14px; border-radius: 6px; cursor: pointer; background: #1e222d; border: 1px solid #2a2e39; color: #d1d4dc; font-size: 13px; }
+  .tab.active { background: #2962ff; border-color: #2962ff; color: #fff; }
+  .tab.off { opacity: 0.45; }
+  .sel { background: #1e222d; color: #d1d4dc; border: 1px solid #2a2e39; border-radius: 6px; padding: 5px 8px; }
+  .badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+  .badge.buy { background: #089981; color: #fff; }
+  .badge.sell { background: #f23645; color: #fff; }
+  .badge.neutral { background: #2a2e39; color: #d1d4dc; }
+  .badge.disabled { background: #4a3a00; color: #ffb020; }
+  .info { font-size: 12px; color: #9aa0ab; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .chart { width: 100%; height: calc(100vh - 96px); }
+  .legend { font-size: 12px; color: #9aa0ab; padding: 6px 16px; border-top: 1px solid #2a2e39; display: flex; gap: 18px; flex-wrap: wrap; }
+  .legend span b { color: #d1d4dc; }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="tabs" id="tabs"></div>
+  <select class="sel" id="interval">
+    <option value="15m">15 мин</option>
+    <option value="1h" selected>1 час</option>
+    <option value="4h">4 часа</option>
+    <option value="1d">1 день</option>
+  </select>
+  <span class="badge neutral" id="signal">—</span>
+  <span class="info" id="info">—</span>
+</div>
+<div class="chart" id="chart"></div>
+<div class="legend" id="legend"></div>
+
+<script>
+const SYMBOLS = ["XAUUSD", "GBPUSD", "EURUSD", "GBPJPY", "DAX"];
+let chart, series, current = { symbol: "XAUUSD", interval: "1h" };
+let status = {};
+
+const INTERVALS = { "15m": ["15m", "5d"], "1h": ["1h", "2mo"], "4h": ["4h", "3mo"], "1d": ["1d", "6mo"] };
+
+function fmt(v, digits) { return v == null ? "—" : v.toFixed(digits == null ? 4 : digits); }
+
+function zoneLine(price, color, title, width) {
+  if (price == null) return;
+  const line = series.createPriceLine({
+    price, color, lineWidth: width || 1, lineStyle: 2,
+    axisLabelVisible: true, title,
+  });
+  return line;
+}
+
+async function refresh() {
+  let an, ch;
+  try {
+    [an, ch] = await Promise.all([
+      fetch(`/api/analysis?symbol=${current.symbol}`).then(r => r.json()),
+      fetch(`/api/chart?symbol=${current.symbol}&interval=${current.interval}&range_=${INTERVALS[current.interval][1]}`).then(r => r.json()),
+    ]);
+  } catch (e) {
+    console.error(e);
+    return;
+  }
+  if (an.detail || ch.detail) {
+    document.getElementById("legend").innerHTML = `<span style="color:#f23645">ошибка данных: ${an.detail || ch.detail}</span>`;
+    return;
+  }
+
+  const sig = document.getElementById("signal");
+  const s = an.enabled ? (an.signal || "neutral") : "disabled";
+  sig.className = "badge " + s;
+  sig.textContent = s.toUpperCase() + (an.enabled ? "" : " (отключён)");
+
+  document.getElementById("info").innerHTML =
+    `цена <b>${fmt(an.last_price, 3)}</b> | тренды D1 <b>${an.trends.d1}</b> / H4 <b>${an.trends.h4}</b> / H1 <b>${an.trends.h1}</b> / W1 <b>${an.trends.w1}</b> | RSI H1 <b>${fmt(an.rsi_h1, 0)}</b> | ATR H1 <b>${fmt(an.atr_h1, 2)}</b>`;
+
+  document.getElementById("legend").innerHTML =
+    `<span><b>зоны:</b> шорт ${fmt(an.liquidity_pool_above)} (red) · лонг ${fmt(an.liquidity_pool_below)} (green) · H4R ${fmt(an.h4_resistance)} · H4S ${fmt(an.h4_support)} · равновесие ${fmt(an.equilibrium)} (blue) · EMA200H1 ${fmt(an.h1_ema200)} (yellow) · EMA50H4 ${fmt(an.h4_ema50)} (orange)</span>` +
+    (an.params ? `<span><b>конфиг:</b> зона ${an.params.zone} · SL ${an.params.sl_buf} · TP ${an.params.tp_buf} · hold ${an.params.hold}д · k ${an.params.k} · фильтр ${an.params.filter}</span>` : "");
+
+  series.setData(ch.candles);
+  series.setMarkers([]);
+  const levels = [
+    [an.liquidity_pool_above, "#f23645", "SHORT"],
+    [an.liquidity_pool_below, "#089981", "LONG"],
+    [an.h4_resistance, "#b967ff", "H4-R"],
+    [an.h4_support, "#b967ff", "H4-S"],
+    [an.equilibrium, "#2962ff", "EQ"],
+    [an.h1_ema200, "#ffeb3b", "EMA200"],
+    [an.h4_ema50, "#ff9800", "EMA50"],
+  ].filter(l => l[0] != null);
+  const byPrice = new Map();
+  for (const [price, color, title] of levels) {
+    const key = price.toFixed(4);
+    if (!byPrice.has(key)) byPrice.set(key, { price, color, titles: [] });
+    byPrice.get(key).titles.push(title);
+  }
+  for (const { price, color, titles } of byPrice.values()) {
+    zoneLine(price, color, titles.join("+"), titles.length >= 2 ? 3 : 1);
+  }
+  chart.timeScale().fitContent();
+}
+
+async function init() {
+  const tabs = document.getElementById("tabs");
+  status = await fetch("/api/status").then(r => r.json());
+  for (const s of SYMBOLS) {
+    const el = document.createElement("div");
+    el.className = "tab" + (s === current.symbol ? " active" : "") + (status[s]?.enabled ? "" : " off");
+    el.textContent = s;
+    el.onclick = () => {
+      current.symbol = s;
+      tabs.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      el.classList.add("active");
+      refresh();
+    };
+    tabs.appendChild(el);
+  }
+  document.getElementById("interval").onchange = (e) => {
+    current.interval = e.target.value;
+    refresh();
+  };
+
+  chart = LightweightCharts.createChart(document.getElementById("chart"), {
+    layout: { background: { color: "#131722" }, textColor: "#d1d4dc" },
+    grid: { vertLines: { color: "#1e222d" }, horzLines: { color: "#1e222d" } },
+    rightPriceScale: { borderColor: "#2a2e39" },
+    timeScale: { borderColor: "#2a2e39", timeVisible: true },
+    crosshair: { mode: 0 },
+    autoSize: true,
+  });
+  series = chart.addCandlestickSeries({
+    upColor: "#089981", downColor: "#f23645", borderUpColor: "#089981",
+    borderDownColor: "#f23645", wickUpColor: "#089981", wickDownColor: "#f23645",
+  });
+  refresh();
+  setInterval(refresh, 60000);
+}
+
+init().catch(e => { console.error(e); document.body.innerHTML = "<pre style='color:#f23645'>Ошибка: " + e + "</pre>"; });
+</script>
+</body>
+</html>

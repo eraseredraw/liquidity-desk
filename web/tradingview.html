@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market Watch — Trade Dashboard</title>
+<style>
+:root {
+  --bg: #0B0E14; --panel: #11151F; --border: #1E2634;
+  --text: #E5E7EB; --muted: #9CA3AF; --accent: #38BDF8;
+  --green: #22C55E; --red: #EF4444; --amber: #F59E0B;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; }
+a { color: var(--accent); text-decoration: none; }
+.top { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+.logo { font-weight: 700; letter-spacing: 1px; }
+.logo span { color: var(--accent); }
+.nav-btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 13px; }
+.nav-btn.active { color: var(--accent); border-color: var(--accent); }
+.main { display: grid; grid-template-columns: 300px 1fr; gap: 16px; padding: 16px 20px; max-width: 1500px; margin: 0 auto; }
+.sidebar { display: flex; flex-direction: column; gap: 10px; }
+.symbol-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; cursor: pointer; transition: border-color .15s; }
+.symbol-card:hover { border-color: var(--accent); }
+.symbol-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.symbol-card.disabled { opacity: .55; }
+.symbol-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.symbol-name { font-weight: 600; }
+.symbol-status { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+.symbol-status.enabled { background: rgba(34,197,94,.15); color: var(--green); }
+.symbol-status.disabled { background: rgba(239,68,68,.15); color: var(--red); }
+.symbol-price { font-size: 18px; font-weight: 700; }
+.symbol-meta { display: flex; justify-content: space-between; margin-top: 6px; color: var(--muted); font-size: 12px; }
+.signal-tag { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+.signal-tag.wait { background: rgba(245,158,11,.15); color: var(--amber); }
+.signal-tag.buy { background: rgba(34,197,94,.15); color: var(--green); }
+.signal-tag.sell { background: rgba(239,68,68,.15); color: var(--red); }
+.signal-tag.sniper { background: rgba(56,189,248,.15); color: var(--accent); }
+.content { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; min-height: 400px; }
+.card { margin-bottom: 16px; }
+.card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 10px; }
+.signal-box { display: flex; align-items: center; gap: 12px; }
+.signal-btn { padding: 10px 20px; border-radius: 8px; font-weight: 700; }
+.signal-btn.wait { background: rgba(245,158,11,.15); color: var(--amber); }
+.signal-btn.buy { background: rgba(34,197,94,.15); color: var(--green); }
+.signal-btn.sell { background: rgba(239,68,68,.15); color: var(--red); }
+.score { font-size: 28px; font-weight: 800; }
+.stat { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.stat:last-child { border-bottom: none; }
+.stat-label { color: var(--muted); }
+.stat-value { font-weight: 600; }
+.chart-container { margin: 14px 0; }
+.chart-img { width: 100%; border-radius: 8px; border: 1px solid var(--border); }
+.advice-text { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 13px; line-height: 1.5; max-height: 420px; overflow-y: auto; white-space: pre-wrap; }
+.loading { color: var(--muted); text-align: center; padding: 30px; }
+@media (max-width: 900px) { .main { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">⚡ TRADE <span>DASHBOARD</span></div>
+  <a href="/" class="nav-btn">Дашборд</a>
+  <a href="/tv" class="nav-btn active">Market Watch</a>
+</div>
+<div class="main">
+  <div class="sidebar" id="symbol-list"><div class="loading">Загрузка символов...</div></div>
+  <div class="content">
+    <div id="detail"><div class="loading">Выберите символ слева</div></div>
+  </div>
+</div>
+
+<script>
+const SYMBOLS = ["XAUUSD", "GBPUSD", "EURUSD", "GBPJPY", "DAX", "BTCUSD"];
+let allAdvices = {};
+let current = { symbol: null };
+
+async function init() {
+  try {
+    const res = await fetch('/api/advices');
+    allAdvices = await res.json();
+  } catch (e) {
+    console.error('Failed to load advices:', e);
+  }
+  renderSymbols();
+  if (!current.symbol) {
+    const first = SYMBOLS.find(s => allAdvices[s]?.enabled !== false) || SYMBOLS[0];
+    selectSymbol(first);
+  }
+}
+
+function signalInfo(sym) {
+  const adv = allAdvices[sym] || {};
+  const enabled = adv.enabled !== false;
+  const signal = adv.signal || 'neutral';
+  const score = adv.entry_score || 0;
+  let tag = 'wait', text = 'ЖДАТЬ';
+  if (!enabled) { tag = 'disabled'; text = 'ОТКЛЮЧЁН'; }
+  else if (signal === 'buy') { tag = 'buy'; text = '🚀 ПОКУПАТЬ'; }
+  else if (signal === 'sell') { tag = 'sell'; text = '🔻 ПРОДАВАТЬ'; }
+  return { enabled, signal, score, tag, text, adv };
+}
+
+function renderSymbols() {
+  const container = document.getElementById('symbol-list');
+  container.innerHTML = SYMBOLS.map(sym => {
+    const info = signalInfo(sym);
+    const adv = info.adv;
+    return `
+      <div class="symbol-card ${current.symbol === sym ? 'active' : ''} ${info.enabled ? '' : 'disabled'}" data-symbol="${sym}" onclick="selectSymbol('${sym}')">
+        <div class="symbol-header">
+          <span class="symbol-name">${sym}</span>
+          <span class="symbol-status ${info.enabled ? 'enabled' : 'disabled'}">${info.enabled ? 'Активен' : 'Отключен'}</span>
+        </div>
+        <div class="symbol-price">${adv.last_price ? adv.last_price.toFixed(adv.last_price > 1000 ? 0 : 3) : '-'}</div>
+        <div class="symbol-meta">
+          <span>Скор: ${info.score}</span>
+          <span>${adv.rsi_h1 ? 'RSI H1: ' + adv.rsi_h1.toFixed(0) : ''}</span>
+        </div>
+        <span class="signal-tag ${info.tag}">${info.text}</span>
+      </div>`;
+  }).join('');
+}
+
+function selectSymbol(sym) {
+  current.symbol = sym;
+  document.querySelectorAll('.symbol-card').forEach(c => c.classList.remove('active'));
+  const card = document.querySelector(`.symbol-card[data-symbol="${sym}"]`);
+  if (card) card.classList.add('active');
+  renderDetail();
+}
+
+function renderDetail() {
+  const info = signalInfo(current.symbol);
+  const adv = info.adv;
+  let h = `<div class="card">
+      <div class="signal-box">
+        <div class="signal-btn ${info.tag}">${info.text}</div>
+        <div class="score">${info.score}</div>
+        <div>СКОР ВХОДА</div>
+      </div>
+    </div>`;
+  h += `<div class="card"><h3>Статистика</h3>
+      <div class="stat"><span class="stat-label">Цена</span><span class="stat-value">${adv.last_price ? adv.last_price.toFixed(adv.last_price > 1000 ? 0 : 3) : '—'}</span></div>
+      <div class="stat"><span class="stat-label">Тренд D1</span><span class="stat-value">${adv.trends?.d1 || '—'}</span></div>
+      <div class="stat"><span class="stat-label">Тренд H4</span><span class="stat-value">${adv.trends?.h4 || '—'}</span></div>
+      <div class="stat"><span class="stat-label">Тренд H1</span><span class="stat-value">${adv.trends?.h1 || '—'}</span></div>
+      <div class="stat"><span class="stat-label">RSI H1</span><span class="stat-value">${adv.rsi_h1 ? adv.rsi_h1.toFixed(0) : '—'}</span></div>
+      <div class="stat"><span class="stat-label">ATR H1</span><span class="stat-value">${adv.atr_h1 ? adv.atr_h1.toFixed(adv.atr_h1 > 10 ? 1 : 3) : '—'}</span></div>
+    </div>`;
+  if (info.enabled && adv.entry && info.signal !== 'neutral') {
+    h += `<div class="card"><h3>Параметры входа</h3>
+      <div class="stat"><span class="stat-label">Вход</span><span class="stat-value">${adv.entry.toFixed(3)}</span></div>
+      <div class="stat"><span class="stat-label">Stop Loss</span><span class="stat-value">${adv.sl ? adv.sl.toFixed(3) : '—'}</span></div>
+      <div class="stat"><span class="stat-label">Take Profit</span><span class="stat-value">${adv.tp ? adv.tp.toFixed(3) : '—'}</span></div>
+    </div>`;
+  }
+  if (adv.chart_path) {
+    const chartName = adv.chart_path.replace(/\\/g, '/').split('/').pop();
+    h += `<div class="chart-container"><img class="chart-img" src="/snapshots/${chartName}" alt="Chart ${current.symbol}"></div>`;
+  }
+  if (adv.advice_text) {
+    h += `<div class="advice-text">${adv.advice_text.replace(/<br>/g, '\n')}</div>`;
+  }
+  document.getElementById('detail').innerHTML = h || '<div class="loading">Нет данных</div>';
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

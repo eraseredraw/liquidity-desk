@@ -48,6 +48,58 @@ body { margin: 0; font-family: Inter, -apple-system, sans-serif; background: #0B
 .entry-param { background: #111827; padding: 10px; border-radius: 8px; text-align: center; }
 .entry-param-label { font-size: 11px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
 .entry-param-value { font-size: 16px; font-weight: 700; color: #F8FAFC; }
+
+/* TradingView Widget Styles */
+.tv-section { margin: 20px 0; }
+.tv-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #38BDF8;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tv-section-title::before { content: ''; width: 4px; height: 20px; background: #38BDF8; border-radius: 2px; }
+.tv-widget-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; }
+.tv-widget-card { background: #1E293B; border: 1px solid #374151; border-radius: 12px; overflow: hidden; }
+.tv-widget-header { background: #111827; border-bottom: 1px solid #374151; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+.tv-widget-title { font-size: 13px; font-weight: 600; color: #F8FAFC; }
+.tv-widget-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 100px; background: #38BDF8; color: #0B0E14; text-transform: uppercase; }
+.tv-widget-body { padding: 0; min-height: 350px; }
+.tv-widget-body iframe { width: 100%; height: 100%; border: none; background: #0B0E14; }
+
+/* Symbol Card */
+.symbol-card { background: #1E293B; border: 1px solid #374151; border-radius: 12px; padding: 16px; cursor: pointer; margin-bottom: 12px; transition: all 0.2s; }
+.symbol-card:hover { border-color: #4B5563; transform: translateY(-2px); }
+.symbol-card.active { border-color: #38BDF8; box-shadow: 0 0 0 1px #38BDF8; }
+.symbol-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.symbol-name { font-size: 16px; font-weight: 700; color: #F8FAFC; letter-spacing: -0.25px; }
+.symbol-status { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.5px; }
+.symbol-status.enabled { background: rgba(8,153,129,0.15); color: #089981; }
+.symbol-status.disabled { background: rgba(107,114,128,0.15); color: #6B7280; }
+.symbol-price { font-size: 20px; font-weight: 700; color: #F8FAFC; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+.symbol-change { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+.symbol-change.up { color: #089981; }
+.symbol-change.down { color: #F23645; }
+.symbol-meta { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid #374151; font-size: 12px; color: #9CA3AF; }
+.signal-tag {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px; }
+.signal-tag.buy { background: rgba(8,153,129,0.12); color: #089981; border: 1px solid rgba(8,153,129,0.2); }
+.signal-tag.sell { background: rgba(242,54,69,0.12); color: #F23645; border: 1px solid rgba(242,54,69,0.2); }
+.signal-tag.neutral { background: rgba(156,163,175,0.1); color: #9CA3AF; border: 1px solid #374151; }
+.signal-tag.sniper { background: rgba(56,189,248,0.12); color: #38BDF8; border: 1px solid rgba(56,189,248,0.2); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(56,189,248,0.3); } 50% { box-shadow: 0 0 0 6px rgba(56,189,248,0); } }
+
+/* TradingView Widget Container */
+.tv-widget-iframe { width: 100%; height: 100%; border: none; background: #0B0E14; }
+
+/* Responsive */
+@media (max-width: 1200px) { .main { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .top { padding: 12px 16px; } .content { padding: 16px; } }
+
+/* Focus visible */
+*:focus-visible { outline: 2px solid #38BDF8; outline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -71,68 +123,89 @@ const SYMBOLS = ["XAUUSD", "GBPUSD", "EURUSD", "GBPJPY", "DAX"];
 let current = { symbol: "GBPJPY" };
 let allAdvices = {};
 
+// Load advices and initialize
+async function init() {
+  await loadAdvices();
+  if (allAdvices[current.symbol]?.enabled === false) {
+    current.symbol = SYMBOLS.find(s => allAdvices[s]?.enabled !== false) || current.symbol;
+  }
+  renderSymbols();
+  render();
+}
+
 async function loadAdvices() {
   try {
     const res = await fetch('/api/advices');
     allAdvices = await res.json();
   } catch (e) {
-    console.error('Failed to load advices', e);
+    console.error('Failed to load advices:', e);
   }
 }
 
-async function init() {
-  await loadAdvices();
-  const tabs = document.getElementById("tabs");
-  for (const s of SYMBOLS) {
-    const enabled = allAdvices[s]?.enabled !== false;
-    const el = document.createElement("div");
-    el.className = "tab" + (s === current.symbol ? " active" : "") + (enabled ? "" : " off");
-    el.textContent = s;
-    el.onclick = () => {
-      if (!enabled) return;
-      current.symbol = s;
-      tabs.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-      el.classList.add("active");
-      render();
-    };
-    tabs.appendChild(el);
+// Render symbol tabs
+function renderSymbols() {
+  const container = document.getElementById('sidebar-content');
+  const symbols = SYMBOLS.filter(s => allAdvices[s]?.enabled !== false);
+  
+  if (symbols.length === 0) {
+    container.innerHTML = '<div class="empty">Нет активных символов</div>';
+    return;
   }
-  render();
+  
+  container.innerHTML = symbols.map((sym) => {
+    const adv = allAdvices[sym] || {};
+    const enabled = adv.enabled !== false;
+    const signal = adv.signal || 'neutral';
+    const score = adv.entry_score || 0;
+    const change = adv.change ?? 0;
+    
+    let signalClass = 'wait';
+    let signalText = 'ЖДАТЬ';
+    if (!enabled) { signalClass = 'disabled'; signalText = 'ОТКЛЮЧЁН'; }
+    else if (signal === 'buy') { signalClass = 'buy'; signalText = '🚀 ПОКУПАТЬ'; }
+    else if (signal === 'sell') { signalClass = 'sell'; signalText = '🔻 ПРОДАВАТЬ'; }
+    
+    return `
+      <div class="symbol-card ${current.symbol === sym ? 'active' : ''} ${enabled ? '' : 'disabled'}" data-symbol="${sym}" onclick="selectSymbol('${sym}')">
+        <div class="symbol-header">
+          <span class="symbol-name">${sym}</span>
+          <span class="symbol-status ${enabled ? 'enabled' : 'disabled'}">${enabled ? 'Активен' : 'Отключен'}</span>
+        </div>
+        <div class="symbol-price">${adv.last_price ? adv.last_price.toFixed(3) : '-'}</div>
+        <div class="symbol-change ${change >= 0 ? 'up' : 'down'}">
+          <span>${change >= 0 ? '+' : ''}${change.toFixed(2)}%</span>
+        </div>
+        <div class="symbol-meta">
+          <span>Скор: ${score}</span>
+          <span>Снайпер: ${adv.m5_sniper ? 'Да' : 'Нет'}</span>
+        </div>
+        <span class="signal-tag ${signalClass}">${signalText}</span>
+      </div>
+    `;
+  }).join('');
 }
 
+// Render main content for selected symbol
 function render() {
   const adv = allAdvices[current.symbol];
   if (!adv) {
-    document.getElementById("sidebar-content").innerHTML = '<div class="loading">Нет данных</div>';
-    document.getElementById("main-content").innerHTML = '<div class="loading">Нет данных</div>';
+    document.getElementById('main-content').innerHTML = '<div class="loading">Нет данных</div>';
     return;
   }
 
-  const signal = adv.signal || "neutral";
+  const signal = adv.signal || 'neutral';
   const score = adv.entry_score || 0;
   const enabled = adv.enabled !== false;
   
-  let signalClass = "wait";
-  let signalText = "ЖДАТЬ";
-  if (!enabled) {
-    signalClass = "disabled";
-    signalText = "ОТКЛЮЧЁН";
-  } else if (signal === "buy") {
-    signalClass = "buy";
-    signalText = "🚀 ПОКУПАТЬ";
-  } else if (signal === "sell") {
-    signalClass = "sell";
-    signalText = "🔻 ПРОДАВАТЬ";
-  }
-
-  const reasons = adv.entry_reasons || [];
-  const veto = adv.veto;
+  let signalClass = 'wait';
+  let signalText = 'ЖДАТЬ';
+  if (!enabled) { signalClass = 'disabled'; signalText = 'ОТКЛЮЧЁН'; }
+  else if (signal === 'buy') { signalClass = 'buy'; signalText = '🚀 ПОКУПАТЬ'; }
+  else if (signal === 'sell') { signalClass = 'sell'; signalText = '🔻 ПРОДАВАТЬ'; }
 
   let sidebar = '';
   
-  if (veto) {
-    sidebar += `<div class="alert">⚠️ ${veto}</div>`;
-  }
+  if (adv.veto) { sidebar += `<div class="alert">⚠️ ${adv.veto}</div>`; }
 
   sidebar += `<div class="card">
     <h3>Сигнал</h3>
@@ -143,15 +216,15 @@ function render() {
     </div>
   </div>`;
 
-  if (enabled && reasons.length > 0) {
+  if (enabled && adv.reasons && adv.reasons.length > 0) {
     sidebar += `<div class="card"><h3>Почему</h3>`;
-    reasons.slice(0, 5).forEach(r => {
+    adv.reasons.slice(0, 5).forEach(r => {
       sidebar += `<div class="reason">${r}</div>`;
     });
     sidebar += `</div>`;
   }
 
-  if (adv.entry && enabled && signal !== "neutral") {
+  if (adv.entry && enabled && signal !== 'neutral') {
     sidebar += `<div class="card">
       <h3>Параметры входа</h3>
       <div class="entry-params">
@@ -226,9 +299,7 @@ function render() {
     </div>`;
   }
 
-  document.getElementById("sidebar-content").innerHTML = sidebar;
-
-  let main = '';
+  let main = sidebar;
   if (adv.chart_path) {
     const chartName = adv.chart_path.replace(/\\/g, '/').split('/').pop();
     main += `<div class="chart-container">
@@ -237,23 +308,32 @@ function render() {
   }
 
   if (adv.advice_text) {
-    main += `<div class="advice-text">${adv.advice_text}</div>`;
+    main += `<div class="advice-text">${adv.advice_text.replace(/\n/g, '<br>')}</div>`;
   }
 
   document.getElementById("main-content").innerHTML = main || '<div class="loading">Нет данных для отображения</div>';
 }
 
-async function refresh() {
-  document.getElementById("sidebar-content").innerHTML = '<div class="loading">Обновление...</div>';
-  document.getElementById("main-content").innerHTML = '<div class="loading">Обновление...</div>';
-  await loadAdvices();
-  render();
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', init);
+
+// Refresh all data
+function refreshAll() {
+  document.getElementById('sidebar-content').innerHTML = '<div class="loading">Обновление...</div>';
+  document.getElementById('main-content').innerHTML = '<div class="loading">Обновление...</div>';
+  init();
 }
 
-init().catch(e => {
-  console.error(e);
-  document.body.innerHTML = "<pre style='color:#F23645; padding:20px;'>Ошибка загрузки: " + e + "</pre>";
-});
+// Select symbol
+function selectSymbol(sym) {
+  current.symbol = sym;
+  document.querySelectorAll('.symbol-card').forEach(c => c.classList.remove('active'));
+  const card = document.querySelector(`.symbol-card[data-symbol="${sym}"]`);
+  if (card) card.classList.add('active');
+  
+  // Render main content for this symbol
+  render();
+}
 </script>
 </body>
 </html>

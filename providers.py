@@ -1,4 +1,4 @@
-"""providers.py — источники свечей: TwelveData -> Finnhub -> Yahoo.
+﻿"""providers.py — источники свечей: TwelveData -> Finnhub -> Yahoo.
 Цепочка фолбэков: провайдер выше падает — берём следующий, Yahoo всегда последний.
 Ключи: data_source.json или env (TWELVEDATA_API_KEY, FINNHUB_API_KEY).
 """
@@ -73,7 +73,7 @@ def twelvedata(symbol: str, interval: str, range_: str) -> pd.DataFrame:
     url = ("https://api.twelvedata.com/time_series"
            f"?symbol={td_sym}&interval={TD_INTERVAL[interval]}"
            f"&outputsize={_td_outputsize(interval, range_)}&timezone=UTC&apikey={key}")
-    data = requests.get(url, headers=HEADERS, timeout=20).json()
+    data = requests.get(url, headers=HEADERS, timeout=15).json()
     if data.get("status") != "ok":
         raise RuntimeError(f"twelvedata: {data.get('message', data.get('code', 'fail'))}")
     rows = [{
@@ -97,7 +97,7 @@ def finnhub(symbol: str, interval: str, range_: str) -> pd.DataFrame:
     frm = to - fh_days * 86400
     url = (f"https://finnhub.io/api/v1/forex/candle?symbol={fh_sym}"
            f"&resolution={fh_res}&from={frm}&to={to}&token={key}")
-    data = requests.get(url, headers=HEADERS, timeout=20).json()
+    data = requests.get(url, headers=HEADERS, timeout=15).json()
     if data.get("s") != "ok":
         raise RuntimeError(f"finnhub: {data.get('s', 'fail')}")
     rows = [{

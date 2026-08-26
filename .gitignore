@@ -7,4 +7,4 @@ snapshots/
 *.log
 sentinel_state.json
 signals_cache.json
-positions.json
+positions.jsoncalendar_cache.json

@@ -2,7 +2,9 @@
 Запуск: python webui.py  ->  http://localhost:8000
 Роуты: / (интерфейс), /api/status, /api/chart, /api/analysis
 """
+import html
 import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -43,10 +45,10 @@ def index():
                     headers={"Cache-Control": "no-store"})
 
 
-@app.get("/old", response_class=HTMLResponse)
-def old_index():
+@app.get("/tv", response_class=HTMLResponse)
+def tradingview():
     from fastapi.responses import Response
-    html = (HERE / "web" / "index.html").read_text(encoding="utf-8")
+    html = (HERE / "web" / "tradingview.html").read_text(encoding="utf-8")
     return Response(content=html, media_type="text/html",
                     headers={"Cache-Control": "no-store"})
 
@@ -121,6 +123,167 @@ def analysis(symbol: str):
     return out
 
 
+_RU_KEY_STOP = (
+    "сигнал:", "цена:", "вход-скор", "уверенность", "действие",
+    "волатильность", "mean-reversion", "фибо", "трендовые линии",
+    "уровни по", "сессия:", "индивидуальная", "факторы скора",
+    "структура:", "журнал", "новости:", "дисциплина:", "kill zone",
+    "kz:", "m5 снайпер", "asian range", "бэктест", "дисклеймер",
+    "disclaimer", "цены закрытия", "тренды",
+)
+
+
+def _parse_advice(text: str) -> dict:
+    """Parse advice .md (RU labels) into dashboard fields. Falls back to EN keys."""
+    out: dict = {}
+    last_price = signal = entry_score = entry = sl = tp = lot = None
+    rsi_h1 = atr_h1 = None
+    trends = {}
+    reasons = []
+
+    def _f(v):
+        try:
+            s = str(v).strip().rstrip(".,;)]}% ")
+            return float(s.replace(",", "."))
+        except Exception:
+            return None
+
+    for raw in text.split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        body = re.sub(r"^[-*]\s*", "", line).replace("\u2022", "").strip()
+        low = body.lower()
+
+        # ВЕТО / СТОП-ТОРГОВЛЯ
+        if "вето" in low or "стоп-торговля" in low:
+            out["veto"] = html.escape(line.strip("*").strip())
+            continue
+
+        # ВХОД-СКОР: 80/100
+        if "вход-скор" in low or "вход скор" in low:
+            m = re.search(r"(\d+)\s*/\s*100", line)
+            if m:
+                entry_score = int(m.group(1))
+            continue
+
+        # - Цена: 1.353 | Тренды D1 bullish / ...
+        if low.startswith("- цена:") or low.startswith("цена:"):
+            after = line.split(":", 1)[1] if ":" in line else line
+            last_price = _f(after.split("|")[0])
+            continue
+
+        # Тренды D1 x / H4 y / H1 z / W1 w
+        if "тренды" in low:
+            for tf in ("w1", "d1", "h4", "h1"):
+                m = re.search(rf"\b{tf}\b\s*[:=]?\s*([a-z]+)", low)
+                if m:
+                    trends[tf] = m.group(1)
+            continue
+
+        # Сигнал: NEUTRAL / BUY / SELL
+        if low.startswith("сигнал:"):
+            val = line.split(":", 1)[1].strip().lower()
+            signal = "buy" if "buy" in val else "sell" if "sell" in val else "neutral"
+            continue
+
+        # ДЕЙСТВИЕ: шорт от 1.158 (...), SL 1.164, TP 1.152
+        if low.startswith("действие"):
+            m = re.search(r"\b(?:от|у)\s+([\d.,]+)", low)
+            if m:
+                entry = _f(m.group(1))
+            m = re.search(r"\bsl\s+([\d.,]+)", low)
+            if m:
+                sl = _f(m.group(1))
+            m = re.search(r"\btp\s+([\d.,]+)", low)
+            if m:
+                tp = _f(m.group(1))
+            continue
+
+        # Mean-reversion: RSI H1 = 41.5 ...
+        if "rsi" in low and "=" in low:
+            m = re.search(r"rsi\s*h?1?\s*=\s*([\d.,]+)", low)
+            if m:
+                rsi_h1 = _f(m.group(1))
+            continue
+
+        # Волатильность H1 ATR: 0.001
+        if "atr" in low:
+            m = re.search(r"atr\s*[:=]\s*([\d.,]+)", low)
+            if m:
+                atr_h1 = _f(m.group(1))
+            continue
+
+        # --- EN fallbacks ---
+        if "signal:" in low:
+            val = line.split(":", 1)[1].strip().lower()
+            signal = signal or ("buy" if "buy" in val else "sell" if "sell" in val else "neutral")
+            continue
+        if "entry_score:" in low and entry_score is None:
+            m = re.search(r"(\d+)", line.split(":", 1)[1])
+            if m:
+                entry_score = int(m.group(1))
+            continue
+        if "last_price:" in low and last_price is None:
+            last_price = _f(line.split(":", 1)[1])
+            continue
+        if "entry:" in low and "entry_score" not in low and entry is None:
+            entry = _f(line.split(":", 1)[1])
+            continue
+        if "sl:" in low and sl is None:
+            sl = _f(line.split(":", 1)[1])
+            continue
+        if "tp:" in low and tp is None:
+            tp = _f(line.split(":", 1)[1])
+            continue
+        if "lot:" in low and lot is None:
+            lot = _f(line.split(":", 1)[1])
+            continue
+        if "rsi_h1:" in low and rsi_h1 is None:
+            rsi_h1 = _f(line.split(":", 1)[1])
+            continue
+        if "atr_h1:" in low and atr_h1 is None:
+            atr_h1 = _f(line.split(":", 1)[1])
+            continue
+        en_trend = False
+        for tf in ("d1", "h4", "h1"):
+            if f"trend_{tf}:" in low and tf not in trends:
+                trends[tf] = line.split(":", 1)[1].strip()
+                en_trend = True
+        if en_trend:
+            continue
+
+        # bullet reasons (skip structured/header lines)
+        if (line.startswith("- ") or line.startswith("• ")) and len(line) > 3:
+            reason = line.lstrip("- ").lstrip("• ").strip()
+            if reason and not any(k in reason.lower() for k in _RU_KEY_STOP):
+                reasons.append(reason)
+
+    if last_price is not None:
+        out["last_price"] = last_price
+    if signal:
+        out["signal"] = signal
+    if entry_score is not None:
+        out["entry_score"] = entry_score
+    if entry is not None:
+        out["entry"] = entry
+    if sl is not None:
+        out["sl"] = sl
+    if tp is not None:
+        out["tp"] = tp
+    if lot is not None:
+        out["lot"] = lot
+    if rsi_h1 is not None:
+        out["rsi_h1"] = rsi_h1
+    if atr_h1 is not None:
+        out["atr_h1"] = atr_h1
+    if trends:
+        out["trends"] = {tf: html.escape(v) for tf, v in trends.items()}
+    if reasons:
+        out["entry_reasons"] = [html.escape(r) for r in reasons[:8]]
+    return out
+
+
 @app.get("/api/advices")
 def advices():
     """Load all latest advice files and backtest stats."""
@@ -148,75 +311,12 @@ def advices():
         latest = files[0]
         try:
             text = latest.read_text(encoding="utf-8")
-            lines = text.split("\n")
-            
+
             data = {"enabled": stats.get(sym, {}).get("disabled") == False}
-            data["advice_text"] = text.replace("\n", "<br>")
-            
-            for line in lines:
-                if "signal:" in line.lower():
-                    data["signal"] = line.split(":")[-1].strip().lower()
-                elif "entry_score:" in line.lower():
-                    try:
-                        data["entry_score"] = int(line.split(":")[-1].strip().split("/")[0])
-                    except:
-                        pass
-                elif "last_price:" in line.lower():
-                    try:
-                        data["last_price"] = float(line.split(":")[-1].strip())
-                    except:
-                        pass
-                elif "entry:" in line.lower() and "entry_score" not in line.lower():
-                    try:
-                        data["entry"] = float(line.split(":")[-1].strip())
-                    except:
-                        pass
-                elif "sl:" in line.lower():
-                    try:
-                        data["sl"] = float(line.split(":")[-1].strip())
-                    except:
-                        pass
-                elif "tp:" in line.lower():
-                    try:
-                        data["tp"] = float(line.split(":")[-1].strip())
-                    except:
-                        pass
-                elif "lot:" in line.lower():
-                    try:
-                        data["lot"] = float(line.split(":")[-1].strip())
-                    except:
-                        pass
-                elif "rsi_h1:" in line.lower():
-                    try:
-                        data["rsi_h1"] = float(line.split(":")[-1].strip())
-                    except:
-                        pass
-                elif "atr_h1:" in line.lower():
-                    try:
-                        data["atr_h1"] = float(line.split(":")[-1].strip())
-                    except:
-                        pass
-                elif "trend_d1:" in line.lower():
-                    if "trends" not in data:
-                        data["trends"] = {}
-                    data["trends"]["d1"] = line.split(":")[-1].strip()
-                elif "trend_h4:" in line.lower():
-                    if "trends" not in data:
-                        data["trends"] = {}
-                    data["trends"]["h4"] = line.split(":")[-1].strip()
-                elif "trend_h1:" in line.lower():
-                    if "trends" not in data:
-                        data["trends"] = {}
-                    data["trends"]["h1"] = line.split(":")[-1].strip()
-                elif "ВЕТО:" in line or "СТОП-ТОРГОВЛЯ:" in line:
-                    data["veto"] = line.strip()
-                elif line.strip().startswith("- ") or line.strip().startswith("• "):
-                    if "entry_reasons" not in data:
-                        data["entry_reasons"] = []
-                    reason = line.strip().lstrip("- ").lstrip("• ")
-                    if reason:
-                        data["entry_reasons"].append(reason)
-            
+            data["advice_text"] = html.escape(text).replace("\n", "<br>")
+            data.update(_parse_advice(text))
+            data.setdefault("signal", "neutral")
+
             # Find chart
             chart_dir = HERE / "snapshots"
             if chart_dir.exists():
@@ -238,8 +338,11 @@ def advices():
 @app.get("/snapshots/{filename}")
 def snapshot(filename: str):
     from fastapi.responses import FileResponse
-    path = HERE / "snapshots" / filename
-    if not path.exists():
+    name = Path(filename).name
+    if name != filename or not name.lower().endswith((".png", ".jpg", ".jpeg")):
+        raise HTTPException(400, "bad filename")
+    path = HERE / "snapshots" / name
+    if not path.is_file():
         raise HTTPException(404, "snapshot not found")
     return FileResponse(str(path), media_type="image/png")
 

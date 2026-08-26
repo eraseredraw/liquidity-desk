@@ -203,14 +203,14 @@ def fetch_candles(yahoo_symbol: str, interval: str, range_: str) -> pd.DataFrame
 
 def fetch_candles_yahoo(yahoo_symbol: str, interval: str, range_: str) -> pd.DataFrame:
     last_exc = None
-    for attempt in range(3):
+    for attempt in range(2):
         for host in ("query1", "query2"):
             url = (
                 f"https://{host}.finance.yahoo.com/v8/finance/chart/{yahoo_symbol}"
                 f"?interval={interval}&range={range_}&includePrePost=false"
             )
             try:
-                resp = requests.get(url, headers=HEADERS, timeout=20)
+                resp = requests.get(url, headers=HEADERS, timeout=12)
                 resp.raise_for_status()
                 data = resp.json()
                 result = (data.get("chart") or {}).get("result") or []

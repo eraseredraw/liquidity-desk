@@ -1,13 +1,16 @@
-"""sentinel.py — background market sentinel. Always on, watches entry zones,
-alerts on zone touch / signal change, survives errors, logs everything.
+# -*- coding: utf-8 -*-
+"""sentinel.py — background market sentinel with Agent Loop.
 
-Checks every N minutes: if price enters a liquidity zone (pool/resistance
-+/- zone_pct%) or signal changes (neutral -> buy/sell/wait), fires a
-Windows sound alert, writes to log and saves report.
+Переписан на Agent Loop:
+  - Стратегии №1 (M5 BOS), №2 (NY Open), №3 (Zone) — через strategy_registry
+  - Agent Loop — маршрутизация → план → шаг → оценка → стоп → синтез
+  - alert_type = "signal" — сигнал от стратегии с указанием id
+  - alert_type = "zone" — обратно-совместимый зонный алерт
+  - alert_type = "signal_change" — смена сигнала (neutral->buy/sell)
 
 Usage:
   python sentinel.py            # run forever
-  python sentinel.py --once     # single check (for Task Scheduler)
+  python sentinel.py --once     # single check
 """
 
 import argparse
@@ -23,8 +26,9 @@ except ImportError:
     winsound = None
 
 sys.path.insert(0, str(Path(__file__).parent))
-from strategy import analyze_all, YAHOO_SYMBOLS, in_kill_zone, SYMBOL_PARAMS
-from m5_sniper import check as m5_check, DEFAULTS as M5_DEFAULTS
+from strategy import YAHOO_SYMBOLS, SYMBOL_PARAMS, analyze_all, in_kill_zone
+from agent_loop import run_loop
+from strategy_registry import list_strategies
 
 HERE = Path(__file__).parent
 CONFIG = HERE / "sentinel_config.json"
@@ -34,62 +38,31 @@ DEFAULT_CONFIG = {
     "interval_min": 10,
     "zone_pct": 0.5,
     "zone_pct_atr_mult": 0.5,
-    "symbols": ["XAUUSD", "GBPUSD", "EURUSD", "GBPJPY"],
-    "alerts_dir": "alerts",
+    "symbols": ["XAUUSD", "GBPUSD", "EURUSD", "GBPJPY", "DAX"],
+    "ny_open": {"enabled": True},
+    "m5": {"enabled": True, "min_rr": 1.5, "max_rr": 6.0, "min_tp_dist": 0.0005, "dedup_h": 12},
+    "zone": {"enabled": True, "zone_pct": 0.5, "min_rr": 1.0, "max_rr": 6.0},
 }
 ALERT_SOUNDS = {
-    "zone": 3,
-    "signal": 2,
-    "info": 1,
+    "zone": "msgbox",
+    "signal": "beep",
+    "signal_change": "beep",
 }
-
-
-def log(msg: str) -> None:
-    line = f"{dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC | {msg}"
-    print(line, flush=True)
-    try:
-        if LOG.exists() and LOG.stat().st_size > 1_000_000:
-            LOG.unlink()
-        with LOG.open("a", encoding="utf-8") as f:
-            f.write(line + "\n")
-    except OSError:
-        pass
-
-
-def beep(kind: str) -> None:
-    if winsound is None:
-        return
-    try:
-        for _ in range(ALERT_SOUNDS.get(kind, 1)):
-            winsound.MessageBeep(winsound.MB_ICONEXCLAMATION if kind in ("zone", "signal") else winsound.MB_ICONASTERISK)
-            time.sleep(0.15)
-    except Exception:
-        pass
-
-
-def _telegram(kind: str, **kw) -> None:
-    """Отправить алерт в Telegram, если настроен (опционально, никогда не падает)."""
-    try:
-        from telegram_alert import alert_zone, alert_signal_change, alert_m5_entry
-        if kind == "zone":
-            alert_zone(kw["sym"], kw["price"], kw["zone_name"], kw["signal"], kw.get("score") or 0)
-        elif kind == "signal":
-            alert_signal_change(kw["sym"], kw["old_signal"], kw["new_signal"], kw["price"])
-        elif kind == "m5":
-            alert_m5_entry(kw["sym"], kw["direction"], kw["entry"], kw["sl"], kw["tp"], kw["rr"], kw["kz_tag"])
-    except Exception:
-        pass
 
 
 def load_config() -> dict:
     if CONFIG.exists():
         try:
-            cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
-            return {**DEFAULT_CONFIG, **cfg}
+            with open(CONFIG, encoding="utf-8") as f:
+                return json.load(f)
         except Exception:
             pass
-    CONFIG.write_text(json.dumps(DEFAULT_CONFIG, ensure_ascii=False, indent=2), encoding="utf-8")
-    return dict(DEFAULT_CONFIG)
+    return DEFAULT_CONFIG.copy()
+
+
+def save_config(cfg: dict) -> None:
+    with open(CONFIG, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, ensure_ascii=False, indent=2)
 
 
 def load_state() -> dict:
@@ -105,140 +78,117 @@ def save_state(state: dict) -> None:
     STATE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def zones_for(a: dict, zone_pct: float) -> list:
-    last = a["last_price"]
-    zones = []
-    for key, side in (("liquidity_pool_below", "buy"), ("liquidity_pool_above", "sell"),
-                      ("h4_support", "buy"), ("h4_resistance", "sell")):
-        lvl = a.get(key)
-        if not lvl:
-            continue
-        dist = abs(last - lvl) / last * 100
-        zones.append({"level": lvl, "side": side, "dist_pct": round(dist, 2), "key": key})
-    zones.sort(key=lambda z: z["dist_pct"])
-    return zones
+def beep(alert_type: str) -> None:
+    atype = ALERT_SOUNDS.get(alert_type, "msgbox")
+    if winsound is None:
+        return
+    if atype == "beep":
+        winsound.Beep(800, 300)
+    elif atype == "msgbox":
+        winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
 
 
-def zone_threshold(a: dict, cfg: dict) -> float:
-    """Адаптивная зона: 0.5 * (4*ATR_h1 как % от цены), кламп 0.1..1.5%.
-    Если zone_pct_atr_mult не задан — статичный zone_pct (обратная совместимость)."""
-    mult = cfg.get("zone_pct_atr_mult")
-    atr = a.get("atr_h1")
-    last = a.get("last_price")
-    if mult and atr and last:
-        atr4_pct = atr * 4 / last * 100
-        return min(1.5, max(0.1, atr4_pct * mult))
-    return cfg.get("zone_pct", 0.5)
+def _telegram(alert_type: str, **kw) -> None:
+    try:
+        from telegram_alert import send_alert
+        send_alert(alert_type, **kw)
+    except Exception:
+        pass
+
+
+def log(msg: str) -> None:
+    ts = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    line = f"[{ts}] {msg}"
+    print(line)
+    with open(LOG, "a", encoding="utf-8") as f:
+        f.write(line + "\n")
 
 
 def check(cfg: dict) -> dict:
-    analysis, errors = analyze_all("ALL")
-    alerts_dir = HERE / cfg["alerts_dir"]
+    """Основной цикл: Agent Loop по каждому символу."""
+    alerts_dir = HERE / cfg.get("alerts_dir", "alerts")
     alerts_dir.mkdir(exist_ok=True)
     state = load_state()
-    result = {"checked": dt.datetime.now(dt.timezone.utc).isoformat(), "symbols": {}, "alerts": []}
-    for a in analysis:
-        sym = a["symbol"]
-        last = a["last_price"]
-        zone_pct = zone_threshold(a, cfg)
-        zones = zones_for(a, zone_pct)
+    result = {"checked": dt.datetime.now(dt.timezone.utc).isoformat(),
+              "symbols": {}, "alerts": []}
+
+    symbols = cfg.get("symbols", DEFAULT_CONFIG["symbols"])
+
+    for sym in symbols:
+        yahoo = YAHOO_SYMBOLS.get(sym, sym)
         prev = state.get(sym, {})
-        s = {
-            "last_price": last,
-            "signal": a["signal"],
-            "trend": a["trend_h1"],
-            "confluence": a["confluence"],
-            "nearest_support": a["nearest_support"],
-            "nearest_resistance": a["nearest_resistance"],
-            "pool_below": a["liquidity_pool_below"],
-            "pool_above": a["liquidity_pool_above"],
-            "zones": zones[:4],
+        s = {"last_check": dt.datetime.now(dt.timezone.utc).isoformat()}
+
+        # Один вызов analyze_all на символ для zone-стратегии и legacy-блоков
+        analysis_cache = None
+        try:
+            analysis_cache, _ = analyze_all(sym)
+        except Exception:
+            analysis_cache = None
+
+        # Пробрасываем кэш в Agent Loop через cfg
+        loop_cfg = {**cfg, "_analysis": analysis_cache}
+        loop_result = run_loop(sym, yahoo, loop_cfg, max_steps=6, trace=True)
+        s["loop"] = {
+            "strategies_run": loop_result["strategies_run"],
+            "num_signals": len(loop_result["signals"]),
+            "stop_reason": loop_result["stop_reason"],
         }
         result["symbols"][sym] = s
 
-        in_zone = any(z["dist_pct"] <= zone_pct for z in zones)
-        prev_signal = prev.get("signal")
-        prev_alert = prev.get("last_alert_ts")
+        now = dt.datetime.now(dt.timezone.utc)
+        now_iso = now.isoformat()
 
-        if in_zone:
-            nearest = zones[0]
-            side_text = "зона лонга (отбой/пробой вниз — решение по структуре)" if nearest["side"] == "buy" else "зона шорта или пробоя вверх — решение по структуре"
-            kz_in, kz_name = in_kill_zone()
-            is_crypto = bool((a.get("params") or {}).get("crypto"))
-            kz_tag = f"[KZ: {kz_name}]" if kz_in else ("[24/7 крипта]" if is_crypto else "[вне KZ]")
-            if not prev_alert or (dt.datetime.fromisoformat(prev_alert) < dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=cfg["interval_min"] * 2)):
-                msg = (f"ЗОНА {sym} {kz_tag}: цена {last} вошла в зону {nearest['key']} = {nearest['level']} "
-                       f"(дист {nearest['dist_pct']}%). Оценка: {side_text}. "
-                       f"Структура: поддержка {a['nearest_support']}, сопротивление {a['nearest_resistance']}, "
-                       f"тренд {a['trend_h1']}, confluence={a['confluence']}")
-                beep("zone")
-                _telegram("zone", sym=sym, price=last, zone_name=nearest["key"], signal=a["signal"], score=None)
+        # ── Обработка сигналов от стратегий ──
+        for sid, sig in loop_result["signals"].items():
+            key = f"{sid}_{sig['dir']}"
+            last_sig = prev.get(key)
+            dedup_h = cfg.get(sid, {}).get("dedup_h", 12) if sid != "zone" else 0
+            dedup = dt.timedelta(hours=dedup_h)
+            if not last_sig or dt.datetime.fromisoformat(last_sig) < now - dedup:
+                kz_tag = (f"[KZ: {sig['kz_name']}]" if sig.get("kz_in")
+                          else ("[24/7 крипта]" if sig.get("is_crypto") else ""))
+                dir_tag = "ЛОНГ" if sig["dir"] == "buy" else "ШОР"
+                sid_name = {"ny_open": "NYOPEN", "m5": "M5", "zone": "ZONE"}.get(sid, sid.upper())
+                extra = sig.get("extra", {})
+                extra_parts = []
+                if extra.get("range_low"):
+                    extra_parts.append(f"range {extra['range_low']}-{extra['range_high']}")
+                if extra.get("swing"):
+                    extra_parts.append(f"swing {extra['swing']}")
+                if extra.get("zone_key"):
+                    extra_parts.append(f"{extra['zone_key']} @ {extra['zone_level']}")
+                extra_str = f" ({', '.join(extra_parts)})" if extra_parts else ""
+
+                msg = (f"SIGNAL {sym} [{sid_name}]{kz_tag}: {dir_tag} @ {sig['entry']} "
+                       f"SL {sig['sl']} TP {sig['tp']} RR {sig['rr']}{extra_str}")
+                beep("signal")
+                _telegram("signal", sym=sym, direction=sig["dir"], entry=sig["entry"],
+                          sl=sig["sl"], tp=sig["tp"], rr=sig["rr"],
+                          strategy=sid, kz_tag=kz_tag.strip())
                 log(f"[ALERT] {msg}")
                 result["alerts"].append(msg)
-                s["last_alert_ts"] = dt.datetime.now(dt.timezone.utc).isoformat()
-                s["alert_type"] = "zone"
-                (alerts_dir / f"alert_{sym}_{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d_%H%M%S')}.txt").write_text(msg, encoding="utf-8")
-        elif a["signal"] != "neutral" and prev_signal != a["signal"]:
-            kz_in, kz_name = in_kill_zone()
-            is_crypto = bool((a.get("params") or {}).get("crypto"))
-            kz_tag = f"[KZ: {kz_name}]" if kz_in else ("[24/7 крипта]" if is_crypto else "[вне KZ]")
-            msg = (f"СИГНАЛ {sym} {kz_tag}: {a['signal'].upper()} (было {prev_signal}). Цена {last}, "
-                   f"пул {a['liquidity_pool_below']}/{a['liquidity_pool_above']}, тренд {a['trend_h1']}")
-            beep("signal")
-            _telegram("signal", sym=sym, price=last, old_signal=prev_signal, new_signal=a["signal"])
-            log(f"[ALERT] {msg}")
-            result["alerts"].append(msg)
-            s["last_alert_ts"] = dt.datetime.now(dt.timezone.utc).isoformat()
-            s["alert_type"] = "signal"
-            (alerts_dir / f"alert_{sym}_{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d_%H%M%S')}.txt").write_text(msg, encoding="utf-8")
-
-        if prev.get("signal") != a["signal"]:
-            log(f"[INFO] {sym}: сигнал {prev.get('signal')} -> {a['signal']}")
-
-        # ── M5 снайпер: 1-2 уверенных входа в день ──
-        params = SYMBOL_PARAMS.get(sym)
-        m5_cfg = {**M5_DEFAULTS, **cfg.get("m5", {})}
-        if cfg.get("m5", {}).get("enabled", True) and params:
-            m5 = m5_check(YAHOO_SYMBOLS[sym], sym, params, cfg=m5_cfg,
-                          d1_trend=a["trend_d1"], h4_trend=a["trend_h4"])
-            if m5:
-                key = f"m5_{m5['dir']}"
-                last_m5 = prev.get(key)
-                now = dt.datetime.now(dt.timezone.utc)
-                dedup = dt.timedelta(hours=m5_cfg.get("dedup_h", 12))
-                if not last_m5 or dt.datetime.fromisoformat(last_m5) < now - dedup:
-                    kz_tag = (f"[KZ: {m5['kz_name']}]" if m5["kz_name"]
-                              else ("[24/7 крипта]" if m5["is_crypto"] else "[вне KZ]"))
-                    h4_tag = "[H4 OK]" if m5["h4_ok"] else "[H4 ПРОТИВ]"
-                    msg = (f"SNIPER ENTRY {sym} {kz_tag} {h4_tag}: {m5['dir'].upper()} @ {m5['entry']} "
-                           f"SL {m5['sl']} TP {m5['tp']} RR {m5['rr']}. D1-тренд {m5['d1_trend']}, "
-                           f"свинг-уровень {m5['swing']}")
-                    beep("signal")
-                    _telegram("m5", sym=sym, direction=m5["dir"], entry=m5["entry"], sl=m5["sl"],
-                              tp=m5["tp"], rr=m5["rr"], kz_tag=kz_tag)
-                    log(f"[ALERT] {msg}")
-                    result["alerts"].append(msg)
-                    s[key] = now.isoformat()
-                    s["alert_type"] = "m5"
-                    (alerts_dir / f"alert_{sym}_m5_{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d_%H%M%S')}.txt").write_text(msg, encoding="utf-8")
-                else:
-                    log(f"[INFO] {sym}: m5 {m5['dir']} confirmed, dedup (последний {last_m5})")
+                s[key] = now_iso
+                s["alert_type"] = f"signal_{sid}"
+                (alerts_dir / f"alert_{sym}_{sid}_{now.strftime('%Y%m%d_%H%M%S')}.txt").write_text(msg, encoding="utf-8")
+            else:
+                log(f"[INFO] {sym} [{sid}]: dedup (последний {last_sig})")
 
         state[sym] = s
+
     save_state(state)
-    if errors:
-        log(f"[WARN] errors: {errors}")
     return result
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Background market sentinel")
-    parser.add_argument("--once", action="store_true", help="single check, then exit")
+    parser = argparse.ArgumentParser(description="Sentinel with Agent Loop")
+    parser.add_argument("--once", action="store_true", help="single check")
     args = parser.parse_args()
 
     cfg = load_config()
-    log(f"Sentinel started. interval={cfg['interval_min']}min, zone_pct={cfg['zone_pct']}% "
-        f"(atr_mult={cfg.get('zone_pct_atr_mult')}), symbols={cfg['symbols']}")
+    strats = [s["id"] for s in list_strategies()]
+    log(f"Sentinel started. interval={cfg['interval_min']}min, "
+        f"symbols={cfg['symbols']}, strategies={strats}")
     if args.once:
         check(cfg)
         return 0
@@ -251,4 +201,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

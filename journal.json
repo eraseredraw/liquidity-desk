@@ -1,0 +1,35 @@
+[
+  {
+    "id": 1,
+    "opened": "2026-08-28T08:49:04.230764+00:00",
+    "symbol": "GBPJPY",
+    "side": "buy",
+    "entry": 216.5,
+    "sl": 215.8,
+    "tp": 218.0,
+    "strategy": "zone",
+    "status": "open"
+  },
+  {
+    "id": 2,
+    "opened": "2026-09-03T14:41:27.967680+00:00",
+    "symbol": "XAUUSD",
+    "side": "sell",
+    "entry": 4470.443,
+    "sl": 4493.22636,
+    "tp": 4424.87628,
+    "strategy": "zone_liquidity",
+    "status": "open"
+  },
+  {
+    "id": 3,
+    "opened": "2026-09-03T14:42:00.572401+00:00",
+    "symbol": "GBPUSD",
+    "side": "buy",
+    "entry": 1.35,
+    "sl": 1.34225,
+    "tp": 1.36549,
+    "strategy": "zone_liquidity",
+    "status": "open"
+  }
+]

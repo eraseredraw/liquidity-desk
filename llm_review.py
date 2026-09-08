@@ -19,8 +19,8 @@ MEM_REPO = Path(r"C:\Users\h04x\Projects\h04xjrn_2.0\mempalace-memory-system\mem
 WING = "trading"
 ROOM = "hall_events"
 
-LLM_BASE = os.environ.get("LLM_BASE", "http://localhost:4000/v1").rstrip("/")
-LLM_MODEL = os.environ.get("LLM_MODEL", "primary")
+LLM_BASE = os.environ.get("LLM_BASE", "https://openrouter.ai/api/v1").rstrip("/")
+LLM_MODEL = os.environ.get("LLM_MODEL", "openrouter/free")
 LLM_KEY = os.environ.get("LLM_API_KEY", "sk-dummy")
 TIMEOUT = 40
 
@@ -47,10 +47,21 @@ def llm_call(prompt: str, system: str) -> str:
     }).encode()
     req = urllib.request.Request(LLM_BASE + "/chat/completions", data=body,
                                  headers={"Content-Type": "application/json",
-                                          "Authorization": f"Bearer {LLM_KEY}"})
+                                          "Authorization": f"Bearer {LLM_KEY}",
+                                          "HTTP-Referer": "http://localhost:8000",
+                                          "X-Title": "trading-bot"})
     with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
         data = json.loads(resp.read().decode())
-    return data["choices"][0]["message"]["content"].strip()
+    if "choices" not in data or not data["choices"]:
+        raise RuntimeError(f"no choices in response: {str(data)[:200]}")
+    msg = data["choices"][0].get("message", {})
+    content = msg.get("content", "") or ""
+    if not content.strip():
+        # fallback: reasoning-поле (free tier у reasoning-моделей)
+        content = msg.get("reasoning", "") or ""
+    if not content.strip():
+        raise RuntimeError("empty response from LLM")
+    return content.strip()
 
 
 def mem_write(text: str, source: str) -> bool:

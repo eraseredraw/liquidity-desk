@@ -1,0 +1,1 @@
+# execution/ — broker abstraction, position management, dry-run + MT5

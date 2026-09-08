@@ -98,6 +98,18 @@ body { margin: 0; font-family: Inter, -apple-system, sans-serif; background: #0B
 @media (max-width: 1200px) { .main { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .top { padding: 12px 16px; } .content { padding: 16px; } }
 
+/* FXSSI Sentiment */
+.sent-row { margin-bottom: 10px; }
+.sent-head { display: flex; justify-content: space-between; font-size: 12px; color: #9CA3AF; margin-bottom: 4px; }
+.sent-bar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; font-size: 10px; font-weight: 700; }
+.sent-buy { background: #089981; color: #fff; display: flex; align-items: center; justify-content: center; min-width: 30px; }
+.sent-sell { background: #F23645; color: #fff; display: flex; align-items: center; justify-content: center; min-width: 30px; }
+.sent-bias { font-size: 11px; font-weight: 600; margin-top: 3px; }
+.sent-bias.buy { color: #089981; }
+.sent-bias.sell { color: #F23645; }
+.sent-bias.neutral { color: #9CA3AF; }
+.sent-note { font-size: 11px; color: #6B7280; margin-top: 8px; }
+
 /* Focus visible */
 *:focus-visible { outline: 2px solid #38BDF8; outline-offset: 2px; }
 </style>
@@ -122,10 +134,11 @@ body { margin: 0; font-family: Inter, -apple-system, sans-serif; background: #0B
 const SYMBOLS = ["XAUUSD", "GBPUSD", "EURUSD", "GBPJPY", "DAX"];
 let current = { symbol: "GBPJPY" };
 let allAdvices = {};
+let fxssiData = {};
 
 // Load advices and initialize
 async function init() {
-  await loadAdvices();
+  await Promise.all([loadAdvices(), loadFxssi()]);
   if (allAdvices[current.symbol]?.enabled === false) {
     current.symbol = SYMBOLS.find(s => allAdvices[s]?.enabled !== false) || current.symbol;
   }
@@ -140,6 +153,33 @@ async function loadAdvices() {
   } catch (e) {
     console.error('Failed to load advices:', e);
   }
+}
+
+async function loadFxssi() {
+  try {
+    const res = await fetch('/api/fxssi');
+    fxssiData = await res.json();
+  } catch (e) {
+    console.error('Failed to load fxssi:', e);
+  }
+}
+
+function fxssiRow(sym) {
+  const s = fxssiData?.symbols?.[sym];
+  if (!s) return '';
+  const buy = s.buy_pct, sell = s.sell_pct;
+  const biasCls = s.bias || 'neutral';
+  let biasTxt = 'Нейтрально';
+  if (biasCls === 'buy') biasTxt = 'Контрарианский BUY (розница шортит)';
+  if (biasCls === 'sell') biasTxt = 'Контрарианский SELL (розница в лонгах)';
+  return `<div class="sent-row">
+    <div class="sent-head"><span>FXSSI ${s.pair}</span><span>${buy.toFixed(1)}% / ${sell.toFixed(1)}%</span></div>
+    <div class="sent-bar">
+      <div class="sent-buy" style="width:${buy}%">${buy > 12 ? buy.toFixed(0) + '%' : ''}</div>
+      <div class="sent-sell" style="width:${sell}%">${sell > 12 ? sell.toFixed(0) + '%' : ''}</div>
+    </div>
+    <div class="sent-bias ${biasCls}">${biasTxt}</div>
+  </div>`;
 }
 
 // Render symbol tabs
@@ -179,6 +219,7 @@ function renderSymbols() {
           <span>Скор: ${score}</span>
           <span>Снайпер: ${adv.m5_sniper ? 'Да' : 'Нет'}</span>
         </div>
+        ${fxssiRow(sym)}
         <span class="signal-tag ${signalClass}">${signalText}</span>
       </div>
     `;
@@ -275,6 +316,15 @@ function render() {
       <span class="stat-value">${adv.atr_h1?.toFixed(2) || '—'}</span>
     </div>
   </div>`;
+
+  const sent = fxssiRow(current.symbol);
+  if (sent) {
+    sidebar += `<div class="card">
+      <h3>Настроение рынка (FXSSI ratio)</h3>
+      ${sent}
+      <div class="sent-note">Розничные позиции, взвешено по 10 брокерам. Обновлено: ${fxssiData?.server_time || '—'} UTC</div>
+    </div>`;
+  }
 
   if (adv.backtest) {
     const bt = adv.backtest;

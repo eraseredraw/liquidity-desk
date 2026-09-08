@@ -335,6 +335,38 @@ def advices():
     return result
 
 
+@app.get("/api/fxssi")
+def fxssi():
+    """Настроение рынка FXSSI по всем нашим символам (% розничных покупок)."""
+    try:
+        import fxssi as fxssi_mod
+        pairs = fxssi_mod.fetch_sentiment()
+    except Exception as exc:
+        raise HTTPException(502, f"fxssi fetch failed: {exc}")
+    if not pairs:
+        raise HTTPException(502, "fxssi недоступен")
+    rows = {}
+    for sym, fpair in fxssi_mod.FXSSI_SYMBOLS.items():
+        p = pairs["pairs"].get(fpair)
+        if not p:
+            continue
+        b = fxssi_mod.bias(sym)
+        rows[sym] = {
+            "pair": fpair,
+            "buy_pct": p["buy"],
+            "sell_pct": p["sell"],
+            "broker_spread": p.get("spread"),
+            "bias": b.get("bias", "neutral"),
+            "reason": b.get("reason", ""),
+        }
+    return {
+        "symbols": rows,
+        "server_time": pairs.get("server_time_text"),
+        "formed": pairs.get("formed"),
+        "fetched": pairs.get("fetched"),
+    }
+
+
 @app.get("/snapshots/{filename}")
 def snapshot(filename: str):
     from fastapi.responses import FileResponse

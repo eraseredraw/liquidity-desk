@@ -20,12 +20,12 @@ YAHOO_SYMBOLS = {
 }
 
 SYMBOL_PARAMS = {
+    "XAUUSD": {"zone": 1.015, "sl_buf": 0.993, "tp_buf": 1.008, "hold": 5, "k": 2, "filter": "d1"},
+    "GBPUSD": {"zone": 1.005, "sl_buf": 0.998, "tp_buf": 1.008, "hold": 20, "k": 1, "filter": "d1"},
+    "EURUSD": {"zone": 1.005, "sl_buf": 0.998, "tp_buf": 1.008, "hold": 20, "k": 1, "filter": "d1"},
     "GBPJPY": {"zone": 1.005, "sl_buf": 0.995, "tp_buf": 1.008, "hold": 20, "k": 1, "filter": "w1"},
+    "DAX":    {"zone": 1.01, "sl_buf": 0.99, "tp_buf": 1.015, "hold": 10, "k": 2, "filter": "d1"},
     "BTCUSD": {"zone": 1.01, "sl_buf": 0.995, "tp_buf": 1.005, "hold": 5, "k": 2, "filter": "d1", "crypto": True},
-    "XAUUSD": None,
-    "GBPUSD": None,
-    "EURUSD": None,
-    "DAX":    None,
 }
 
 MTF_GROUPS = [

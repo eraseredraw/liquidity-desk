@@ -8,4 +8,11 @@ snapshots/
 sentinel_state.json
 signals_cache.json
 positions.json
+journal.json
 calendar_cache.json
+fxssi_cache.json
+market_now.md
+oracle_report.*
+signals_report.*
+report_20*.md
+report_20*.json

@@ -1,0 +1,8 @@
+{
+  "twelvedata_key": "YOUR_TWELVEDATA_API_KEY",
+  "finnhub_key": "YOUR_FINNHUB_API_KEY",
+  "telegram": {
+    "token": "YOUR_BOT_TOKEN_FROM_BOTFATHER",
+    "chat_id": 000000000
+  }
+}
